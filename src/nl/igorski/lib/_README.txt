@@ -1,3 +1,15 @@
+these files were first shared to create an open source library of the
+nl.igorski.lib.audio package, which is the the audio synthesis and caching
+engine used by www.onebarloop.com
+
+However, other classes and components used for www.onebar... ( and several other
+projects ) have also been released in the public domain, hopefully someone has
+use for these, in essence: they are nothing special - several have created
+similar or 'better' versions of the functionalities on offer - but they get the
+job done adequately.
+
+so, what is this "BONUS" material ?:
+
 package nl.igorski.lib.ui
 
 these contain a plethora of everyday "components" which are all ActionScript-based.
