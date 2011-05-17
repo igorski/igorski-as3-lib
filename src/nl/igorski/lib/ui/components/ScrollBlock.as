@@ -6,6 +6,8 @@
     import flash.events.MouseEvent;
     import flash.geom.Rectangle;
     /**
+     * ScrollBlock is a self-masking container which provides a simple
+     * scrollbar for moving through a DisplayObject container which exceeds set dimensions
      * ...
      * @author Igor Zinken
      */
@@ -28,13 +30,20 @@
         private var _scrollPosition	:int;
         private var _alwaysScroll	:Boolean;
 
+        /*
+         * inObj            a DisplayObject container holding the content to be masked and scrolled
+         * inWidth          maximum width this object may occupy
+         * inHeight         maximum height this object may occopy
+         * inScrollPosition x-position of the scrollbar ( 0 defaults to right side of content ) in pixels
+         * inAlwaysScroll   when set to true, this block will also scroll when the mousewheel is used outside it's area
+         */
         public function ScrollBlock( inObj:*, inWidth:int = 100, inHeight:int = 100, inScrollPosition:int = 0, inAlwaysScroll:Boolean = false )
         {
-            obj = inObj;
-            _width = inWidth;
-            _height = inHeight;
+            obj             = inObj;
+            _width          = inWidth;
+            _height         = inHeight;
             _scrollPosition = inScrollPosition;
-            _alwaysScroll = inAlwaysScroll;
+            _alwaysScroll   = inAlwaysScroll;
 
             addEventListener( Event.ADDED_TO_STAGE, initUI );
         }
@@ -43,7 +52,8 @@
         {
             removeEventListener( Event.ADDED_TO_STAGE, initUI );
 
-            if ( !contains( obj )) addChild( obj );
+            if ( !contains( obj ))
+                addChild( obj );
 
             if ( background.numChildren == 0 )
             {
@@ -54,6 +64,19 @@
             minY = background.y;
             maxY = background.y + background.height - ruler.height;
 
+            draw();
+
+            contentstarty = obj.y;
+
+            minY = 0;
+            maxY = background.height - ruler.height;
+
+            checkScroll();
+        }
+
+        // override in subclass for custom skinning
+        protected function draw():void
+        {
             if ( !contains( maskmc ))
             {
                 maskmc.graphics.beginFill( 0xFFFFFF, 1 );
@@ -81,12 +104,6 @@
             {
                 ruler.x = background.x = _scrollPosition;
             }
-            contentstarty = obj.y;
-
-            minY = 0;
-            maxY = background.height - ruler.height;
-
-            checkScroll();
         }
 
         private function checkScroll():void
@@ -99,11 +116,9 @@
                 addEventListener( Event.ENTER_FRAME, enterFrameHandle, false, 0, true );
 
                 if ( _alwaysScroll )
-                {
                     stage.addEventListener( MouseEvent.MOUSE_WHEEL, handleWheel, false, 0, true );
-                } else {
+                else
                     addEventListener( MouseEvent.MOUSE_WHEEL, handleWheel, false, 0, true );
-                }
             } else
             {
                 hideScroller();
@@ -215,6 +230,7 @@
         {
             if ( !contains( background ))
                 addChild( background );
+
             if ( !contains( ruler ))
                 addChild( ruler );
         }
@@ -223,6 +239,7 @@
         {
             if ( contains( background ))
                 removeChild( background );
+
             if ( contains( ruler ))
                 removeChild( ruler );
         }

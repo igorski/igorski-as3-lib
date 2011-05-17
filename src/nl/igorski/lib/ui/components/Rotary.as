@@ -1,14 +1,12 @@
 package nl.igorski.lib.ui.components
 {
-    import com.greensock.TweenLite;
     import flash.display.Sprite;
     import flash.events.Event;
 
-import flash.utils.clearInterval;
-import flash.utils.setInterval;
-import flash.utils.setTimeout;
+    import flash.utils.clearInterval;
+    import flash.utils.setInterval;
 
-import nl.igorski.lib.ui.components.events.RotaryEvent;
+    import nl.igorski.lib.ui.components.events.RotaryEvent;
     import nl.igorski.lib.ui.components.events.SliderBarEvent;
     import nl.igorski.managers.ColorSchemeManager;
     /**
@@ -73,7 +71,7 @@ import nl.igorski.lib.ui.components.events.RotaryEvent;
             var pct     :Number = v / _max;
             _handle.value  = pct;
             _knob.rotation = percentageToRotation( pct );
-            draw( value );
+            drawCurve( value );
             dispatchEvent( new RotaryEvent( RotaryEvent.CHANGE, value ));
         }
 
@@ -109,13 +107,13 @@ import nl.igorski.lib.ui.components.events.RotaryEvent;
             {
                 _handle.enabled = true;
                 _handle.addEventListener( SliderBarEvent.CHANGE, rotate, false, 0, true );
-                TweenLite.to( this, .65, { alpha: 1 } );
+                alpha = 1;
             }
             else {
                 _handle.enabled = false;
                 if ( _handle.hasEventListener( SliderBarEvent.CHANGE ))
                     _handle.removeEventListener( SliderBarEvent.CHANGE, rotate );
-                TweenLite.to( this, .65, { alpha: .35 } );
+                alpha = .35;
             }
         }
 
@@ -126,6 +124,36 @@ import nl.igorski.lib.ui.components.events.RotaryEvent;
         {
             removeEventListener( Event.ADDED_TO_STAGE, init );
 
+            draw();
+
+            value	= _default;
+            enabled = _enabled;
+        }
+
+        private function rotate( e:SliderBarEvent ):void
+        {
+            _knob.rotation = percentageToRotation( e.value );
+            drawCurve( value );
+
+            if ( _callbackDelay == 0 ) {
+                dispatchEvent( new RotaryEvent( RotaryEvent.CHANGE, value ));
+            }
+            else {
+                clearInterval( _callbackIval );
+                _callbackIval = setInterval( function():void
+                {
+                    clearInterval( _callbackIval );
+                    dispatchEvent( new RotaryEvent( RotaryEvent.CHANGE, value ));
+                }, _callbackDelay );
+            }
+        }
+
+        //_________________________________________________________________________________________________________________
+        //                                                                                P R O T E C T E D   M E T H O D S
+
+        // override in subclass for custom skinning
+        protected function draw():void
+        {
             // knob - used for visual reference of current rotation
             _knob               = new Sprite();
             _knob.mouseEnabled  = false;
@@ -149,31 +177,7 @@ import nl.igorski.lib.ui.components.events.RotaryEvent;
             _handle.alpha     = 0;
             _handle.width     = _size * 2;
             _handle.x         = _size;
-
-            value	= _default;
-            enabled = _enabled;
         }
-
-        private function rotate( e:SliderBarEvent ):void
-        {
-            _knob.rotation = percentageToRotation( e.value );
-            draw( value );
-
-            if ( _callbackDelay == 0 ) {
-                dispatchEvent( new RotaryEvent( RotaryEvent.CHANGE, value ));
-            }
-            else {
-                clearInterval( _callbackIval );
-                _callbackIval = setInterval( function():void
-                {
-                    clearInterval( _callbackIval );
-                    dispatchEvent( new RotaryEvent( RotaryEvent.CHANGE, value ));
-                }, _callbackDelay );
-            }
-        }
-
-        //_________________________________________________________________________________________________________________
-        //                                                                                P R O T E C T E D   M E T H O D S
 
         //_________________________________________________________________________________________________________________
         //                                                                                    P R I V A T E   M E T H O D S
@@ -182,6 +186,7 @@ import nl.igorski.lib.ui.components.events.RotaryEvent;
         {
             if ( rotation < 0 )
                 rotation = 180 + ( rotation + 180 );
+            
             return rotation / MAX_ROTATION;
         }
 
@@ -190,7 +195,7 @@ import nl.igorski.lib.ui.components.events.RotaryEvent;
             return value * MAX_ROTATION;
         }
 
-        private function draw( v:Number ):void
+        private function drawCurve( v:Number ):void
         {
             v = rotationToPercentage( _knob.rotation ) * .82;
 

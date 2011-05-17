@@ -1,44 +1,81 @@
-package nl.igorski.lib.ui.components.events
+﻿package nl.igorski.lib.utils
 {
+    import flash.display.Sprite;
     import flash.events.Event;
-    /**
-     * Project:    One Bar Loop
-     * Package:    nl.igorski.ui.components.events
-     * Class:      RotaryEvent
+
+    /*
+     * because sometimes you just need a quick progress bar
+     * to show on loading of objects / processes
      *
-     *
-     *
-     * @author     igor.zinken@igorski.nl
-     * @version    0.1
-     * @since      23-12-2010 10:23
-    */
-    public class RotaryEvent extends Event
+     * @author Igor Zinken
+     */
+    public class ProgressBar extends Sprite
     {
-        public static const CHANGE	:String = 'RotaryEvent::CHANGE';
-        public var value			:Number;
+        private var _width	:Number = 150;
+        private var _height	:Number = 2;
+
+        private var bg		:Sprite;
+        private var bar		:Sprite;
         //_________________________________________________________________________________________________________________
         //                                                                                            C O N S T R U C T O R
 
-        public function RotaryEvent( type:String = CHANGE, newValue:Number = 0 ):void
+        public function ProgressBar()
         {
-            value = newValue;
-            super( type );
+            addEventListener( Event.ADDED_TO_STAGE, initUI );
         }
 
         //_________________________________________________________________________________________________________________
         //                                                                                      P U B L I C   M E T H O D S
 
+        public function update( pct:Number ):void
+        {
+            with( bar.graphics )
+            {
+                clear();
+                beginFill( 0x7F7F7F, 1 );
+                drawRect( bg.x, bg.y, ( _width / 100 ) * pct, _height );
+                endFill();
+            }
+        }
+
+        public function close():void
+        {
+            while ( numChildren > 0 )
+                removeChildAt( 0 );
+            bg = null;
+            bar = null;
+        }
+
         //_________________________________________________________________________________________________________________
         //                                                                                  G E T T E R S  /  S E T T E R S
+
 
         //_________________________________________________________________________________________________________________
         //                                                                                      E V E N T   H A N D L E R S
 
+
         //_________________________________________________________________________________________________________________
         //                                                                                P R O T E C T E D   M E T H O D S
+
 
         //_________________________________________________________________________________________________________________
         //                                                                                    P R I V A T E   M E T H O D S
 
+        private function initUI( e:Event ):void
+        {
+            removeEventListener( Event.ADDED_TO_STAGE, initUI );
+
+            bg = new Sprite();
+            with( bg.graphics )
+            {
+                beginFill( 0x222222, 1 );
+                drawRect( 0, 0, _width, _height );
+                endFill();
+            }
+            addChild( bg );
+
+            bar = new Sprite();
+            addChild( bar );
+        }
     }
 }

@@ -2,7 +2,6 @@
 {
     import flash.display.Sprite;
     import flash.events.Event;
-
     /**
      * ...
      * @author Igor Zinken
@@ -18,20 +17,23 @@
         {
             removeEventListener( Event.ADDED_TO_STAGE, initUI );
 
-            // body
-            graphics.lineStyle( 2, 0x000000 );
-            graphics.beginFill( 0x000000, 1 );
-            graphics.drawRoundRect( 0, 0, 12, 35, 3 );
-            graphics.endFill();
-            graphics.lineStyle( 1, 0xFFFFFF );
-            // arrow up
-            graphics.moveTo( 3, 9 );
-            graphics.lineTo( 6, 5 );
-            graphics.lineTo( 9, 9 );
-            // arrow down
-            graphics.moveTo( 3, 26 );
-            graphics.lineTo( 6, 30 );
-            graphics.lineTo( 9, 26 );
+            with( graphics )
+            {
+                // body
+                lineStyle( 2, 0x000000 );
+                beginFill( 0x000000, 1 );
+                drawRoundRect( 0, 0, 12, 35, 3 );
+                endFill();
+                lineStyle( 1, 0xFFFFFF );
+                // arrow up
+                moveTo( 3, 9 );
+                lineTo( 6, 5 );
+                lineTo( 9, 9 );
+                // arrow down
+                moveTo( 3, 26 );
+                lineTo( 6, 30 );
+                lineTo( 9, 26 );
+            }
         }
     }
 }
