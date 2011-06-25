@@ -5,8 +5,8 @@
     import flash.events.FocusEvent;
     import flash.events.MouseEvent;
 
-    import nl.igorski.definitions.OBLFonts;
     import nl.igorski.lib.View;
+    import nl.igorski.lib.definitions.Fonts;
     import nl.igorski.lib.models.Proxy;
     import nl.igorski.lib.ui.forms.components.Birthdate;
     import nl.igorski.lib.ui.forms.components.Checkbox;
@@ -14,45 +14,50 @@
     import nl.igorski.lib.ui.components.FeedbackWindow;
     import nl.igorski.lib.ui.forms.components.FormText;
     import nl.igorski.lib.ui.forms.components.Input;
-    import nl.igorski.lib.ui.forms.components.PullDown;
+    import nl.igorski.lib.ui.forms.components.Select;
     import nl.igorski.lib.ui.forms.components.RadioGroup;
-    import nl.igorski.views.components.StdTextField;
+    import nl.igorski.lib.ui.components.StdTextField;
     import nl.igorski.lib.ui.forms.components.SubmitButton;
     import nl.igorski.lib.ui.forms.components.TextArea;
 
     /**
      * the Base Form class, to be extended by each form you create. This class
-     * includes basic validation ( just to check whether values have been entered ), the Input
-     * fields may benefit from extra regular expression validations to check their values
-     * against patterns. As it is, the real validation of forms extending this class should be
-     * performed by the backend storing the data!!
+     * includes basic validation ( just to check whether values have been entered according
+     * to the values expected of the element type, you should write your own validation in
+     * your sub class ), the Input fields may benefit from extra regular expression validations to
+     * check their values against patterns. As it is, the real validation of forms extending this class
+     * should be performed by the backend storing the data!!
      * ...
      * @author Igor Zinken
      */
     public class BaseForm extends Sprite
     {
-        public static const CLOSE		:String = 'BaseForm::CLOSE';
+        public static const CLOSE           :String = "BaseForm::CLOSE";
 
-        public var feedback				:FeedbackWindow;
-        public var form					:Array;
-        public var formObjects			:Array;
-        public var margin				:int = 10;
-        public var labelMargin			:int = 200;
-        public var inputMargin			:int = 0;
-        public var validated			:Boolean;
+        public var feedback                 :FeedbackWindow;
+        public var form                     :Array;
+        public var formElements             :Array;
+        public var margin                   :int = 10;
+        public var labelMargin              :int = 0;
+        public var inputMargin              :int = 200;
+        public var showLabelInInputField    :Boolean = false;
+        public var labelFieldBindings       :Array;
+        public var _formWidth               :Number = 0;
+        public var validated                :Boolean;
 
-        public var p					:Proxy;
+        public var p                        :Proxy;
+        public var _transfer                :Boolean = false;
 
-        public var _transfer			:Boolean = false;
-        public var labelInfield			:Boolean = true;		// whether labels are displayed inside input fields
-        public var labelFieldBindings	:Array;
-
-        public var _formWidth			:Number = 0;
+        //_________________________________________________________________________________________________________
+        //                                                                                    C O N S T R U C T O R
 
         public function BaseForm()
         {
 
         }
+
+        //_________________________________________________________________________________________________________
+        //                                                                              P U B L I C   M E T H O D S
 
         public function doSubmit( url:String, data:Array ):void
         {
@@ -78,211 +83,6 @@
             });
         }
 
-        public function handleResult():void
-        {
-            // override in subclass
-        }
-
-        public function buildForm():void
-        {
-            var curY:int = 0;
-
-            labelFieldBindings = [];
-            formObjects = [];
-
-            for each ( var item:Array in form )
-            {
-                var formLabel:StdTextField = new StdTextField( OBLFonts.DEFAULT );
-                formLabel.text = item[1];
-                formLabel.x = labelMargin;
-                formLabel.mouseEnabled = false;
-                if ( item[ 3 ] )
-                {
-                    if ( formLabel.text.indexOf("*") == -1 )
-                        formLabel.text += " *";
-                }
-                var input:*;
-
-                switch( item[2] )
-                {
-                    case Divider:
-                        input = new Divider(18, 200);
-                        break;
-                    case Input:
-                        input = new Input();
-                        if ( labelInfield )
-                        {
-                            formLabel.x = inputMargin + 5;
-                            input.addEventListener( FocusEvent.FOCUS_IN, hideLabel );
-                            labelFieldBindings.push( { field: input, lbl: formLabel } );
-                        }
-                        break;
-                    case TextArea:
-                        input = new TextArea();
-                        if ( labelInfield )
-                        {
-                            formLabel.x = inputMargin + 5;
-                            input.addEventListener( FocusEvent.FOCUS_IN, hideLabel );
-                            labelFieldBindings.push( { field: input, lbl: formLabel } );
-                        }
-                        break;
-                    case Birthdate:
-                        input = new Birthdate();
-                        break;
-                    case Checkbox:
-                        input = new Checkbox(item[1]);
-                        break;
-                    case RadioGroup:
-                        input = new RadioGroup(item[1], item[4]);
-                        break;
-                    case PullDown:
-                        input = new PullDown(item[1], item[4]);
-                        break;
-                    case SubmitButton:
-                        input = new SubmitButton(item[1]);
-                        input.addEventListener( MouseEvent.CLICK, handleSubmit );
-                        break;
-                    case FormText:
-                        input = new FormText(item[1]);
-                        break;
-                    case null:
-                        formLabel.y = curY;
-                        curY = formLabel.y + margin;
-                        break;
-                }
-
-                if ( input != null )
-                {
-                    formLabel.y = input.y = curY;
-
-                    switch( item[2] ) {
-                        default:
-                            input.x = inputMargin;
-                            break;
-                        case Divider:
-                            input.x = 3;
-                            break;
-                        case RadioGroup:
-                            if (item[4].length > 2) {
-                                input.y += formLabel.height + margin;
-                                input.x = formLabel.x;
-                            } else {
-                                input.x = inputMargin;
-                            }
-                            break;
-                        case FormText:
-                            input.x = formLabel.x;
-                            removeChild(formLabel);
-                            break;
-                        case SubmitButton:
-                            formLabel.text = '';
-                            input.y = curY -( 8 );
-                            input.x = inputMargin;
-                            break;
-                    }
-
-                    addChild( input );
-                    addChild( formLabel );
-
-                    switch( item[2] )
-                    {
-                        default:
-                            curY = ( input.y + 18 + margin );
-                            break;
-                        case TextArea:
-                            curY = ( input.y + 75 + margin );
-                            break;
-                        case RadioGroup:
-                        case FormText:
-                            curY = ( input.y + input.height + margin );
-                            break;
-                    }
-                    formObjects.push( input );
-                }
-            }
-            _formWidth = width;
-        }
-
-        public function resetForm():void
-        {
-            while ( numChildren > 1 )
-                removeChildAt( 0 );
-            for each( var field:* in formObjects )
-                field = null;
-
-            formObjects = null;
-            buildForm();
-        }
-
-        public function handleSubmit( e:MouseEvent ):void
-        {
-            validated = validate();
-            // override in subclass calling this as super
-        }
-
-        public function validate():Boolean
-        {
-            var count:int = 0;
-            var error:Boolean = false;
-
-            for each( var item:Array in form )
-            {
-                switch(item[2]) {
-                    case Input:
-                    case TextArea:
-                        if ( item[3] ) {
-                            if (formObjects[count].val == '')
-                            {
-                                formObjects[count].doError();
-                                error = true;
-                            } else {
-                                formObjects[count].undoError();
-                            }
-                        } else {
-                            formObjects[count].undoError();
-                        }
-                        break;
-                    case Checkbox:
-                        if ( item[3] ) {
-                            if ( !Checkbox( formObjects[count] ).val )
-                            {
-                                formObjects[count].doError();
-                                error = true;
-                            } else {
-                                formObjects[count].undoError();
-                            }
-                        }
-                        break;
-                    case RadioGroup:
-                        if ( item[3] ) {
-                            if ( RadioGroup( formObjects[count] ).val == "")
-                            {
-                                formObjects[count].doError();
-                                error = true;
-                            } else {
-                                formObjects[count].undoError();
-                            }
-                        } else {
-                            formObjects[count].undoError();
-                        }
-                        break;
-                    case SubmitButton:
-                        break;
-                }
-                ++count;
-            }
-            switch( error )
-            {
-                case true:
-                    return false;
-                    break;
-                case false:
-                    return true;
-                    break;
-            }
-            return false;
-        }
-
         /*
          * collects the value of a given field name
          * regardless of return type
@@ -290,21 +90,22 @@
         public function value( field:String ):*
         {
             var count:int = 0;
-            for each ( var item:Array in form )
+            for each ( var item:Object in form )
             {
-                if (item[0] == field) {
-                    switch( item[2] )
+                if ( item.name == field )
+                {
+                    switch( item.type )
                     {
                         case Input:
                         case TextArea:
-                            return formObjects[count].val;
+                            return formElements[count].val;
                             break;
                         case Checkbox:
-                            return Checkbox( formObjects[count] ).numericVal;
+                            return Checkbox( formElements[count] ).numericVal;
                             break;
                         case RadioGroup:
-                        case PullDown:
-                            return formObjects[count].val;
+                        case Select:
+                            return formElements[count].val;
                             break;
                     }
                 }
@@ -316,11 +117,12 @@
         public function getData():Array
         {
             var _data:Array = [];
-            for each( var item:Array in form )
+            for each( var item:Object in form )
             {
-                if ( item[2] != SubmitButton && item[2] != Divider && item[2] != FormText )
+                // collect all form values for the elements that can actually hold a value
+                if ( item.type != SubmitButton && item.type != Divider && item.type != FormText )
                 {
-                    var data:Object = { name: item[0], value: value( item[0] ) };
+                    var data:Object = { name: item.name, value: value( item.name ) };
                     _data.push( data );
                 }
             }
@@ -356,9 +158,16 @@
             setChildIndex( feedback, numChildren - 1 );
         }
 
-        public function hideFeedback():void
+        //_________________________________________________________________________________________________________
+        //                                                                            G E T T E R S / S E T T E R S
+
+        //_________________________________________________________________________________________________________
+        //                                                                              E V E N T   H A N D L E R S
+
+        // override in subclass calling this as super
+        protected function handleSubmit( e:MouseEvent ):void
         {
-            feedback.hide();
+            validated = validate();
         }
 
         private function closeFeedback( e:Event ):void
@@ -382,14 +191,234 @@
             }
         }
 
-        public function close():void
-        {
-
-        }
-
         private function finishClose( e:Event = null ):void
         {
             dispatchEvent( new Event( BaseForm.CLOSE ));
         }
+
+        //_________________________________________________________________________________________________________
+        //                                                                        P R O T E C T E D   M E T H O D S
+
+        // override these in your sub class
+        protected function handleResult():void
+        {
+
+        }
+
+        protected function resetForm():void
+        {
+            while ( numChildren > 1 )
+                removeChildAt( 0 );
+
+            for each( var field:* in formElements )
+                field = null;
+
+            formElements = null;
+            buildForm();
+        }
+
+        protected function buildForm():void
+        {
+            var curY        :int = 0;
+            var curTabIndex :int = 0;
+
+            labelFieldBindings   = [];
+            formElements         = [];
+
+            for each ( var item:Object in form )
+            {
+                var formLabel:StdTextField = new StdTextField( Fonts.LABEL );
+
+                if ( item.label != null )
+                    formLabel.text = item.label;
+
+                formLabel.x = labelMargin;
+                formLabel.mouseEnabled =
+                formLabel.tabEnabled   = false;
+
+                if ( item.required )
+                {
+                    if ( formLabel.text.indexOf("*") == -1 )
+                        formLabel.text += " *";
+                }
+                var input:*;
+
+                switch( item.type )
+                {
+                    case Divider:
+                        input = new Divider( item.width || ( inputMargin + 190 ), item.height || 18 );
+                        break;
+                    case Input:
+                        input = new Input( item.placeHolderText || "", item.isSmall || false, item.isPassword || false, item.width || 190, item.height || 18 );
+                        if ( showLabelInInputField )
+                        {
+                            formLabel.x = inputMargin + 5;
+                            input.addEventListener( FocusEvent.FOCUS_IN, hideLabel );
+                            labelFieldBindings.push( { field: input, lbl: formLabel } );
+                        }
+                        break;
+                    case TextArea:
+                        input = new TextArea( item.placeHolderText || "", item.width || 190, item.height || 70 );
+                        if ( showLabelInInputField )
+                        {
+                            formLabel.x = inputMargin + 5;
+                            input.addEventListener( FocusEvent.FOCUS_IN, hideLabel );
+                            labelFieldBindings.push( { field: input, lbl: formLabel } );
+                        }
+                        break;
+                    case Birthdate:
+                        input = new Birthdate();
+                        break;
+                    case Checkbox:
+                        input = new Checkbox( item.label );
+                        break;
+                    case RadioGroup:
+                        input = new RadioGroup( item.label, item.options, item.maxWidth || 200 );
+                        break;
+                    case Select:
+                        input = new Select( item.label, item.options, item.width || 190, item.height || 125 );
+                        break;
+                    case SubmitButton:
+                        input = new SubmitButton( item.label );
+                        input.addEventListener( MouseEvent.CLICK, handleSubmit );
+                        break;
+                    case FormText:
+                        input = new FormText( item.label );
+                        break;
+                    case null:
+                        formLabel.y = curY;
+                        curY = formLabel.y + margin;
+                        break;
+                }
+
+                // calculate the position of the current object by it's type
+                if ( input != null )
+                {
+                    formLabel.y = input.y = curY;
+
+                    switch( item.type ) {
+                        default:
+                            input.x = inputMargin;
+                            break;
+                        case Divider:
+                            input.x = labelMargin;
+                            break;
+                        case RadioGroup:
+                            if ( item.options.length > 2 ) {
+                                input.y += formLabel.height + margin;
+                                input.x = formLabel.x;
+                            } else {
+                                input.x = inputMargin;
+                            }
+                            break;
+                        case FormText:
+                            input.x = formLabel.x;
+                            break;
+                        case SubmitButton:
+                            formLabel.text = "";
+                            input.y = curY -( 8 );
+                            input.x = inputMargin;
+                            break;
+                    }
+                    addChild( input );
+                    addChild( formLabel );
+
+                    // calculate the next Y position according to the current input type
+                    switch( item.type )
+                    {
+                        default:
+                            curY = ( input.y + 18 + margin );
+                            break;
+                        case TextArea:
+                            curY = ( input.y + 75 + margin );
+                            break;
+                        case RadioGroup:
+                        case FormText:
+                            curY = ( input.y + input.height + margin );
+                            break;
+                    }
+                    formElements.push( input );
+                }
+                input.tabIndex = curTabIndex;
+                curTabIndex    = input.tabIndex + 1;
+            }
+            // here we set the Select elements as the highest children in the DisplayList
+            // as they can overlap other form elements when they're opened
+            for ( var i:int = formElements.length - 1; i > 0; --i )
+            {
+                if ( formElements[i] is Select )
+                    swapChildren( formElements[i], getChildAt( numChildren - 1 ));
+            }
+            _formWidth = width;
+        }
+
+        protected function validate():Boolean
+        {
+            var count:int = 0;
+            var error:Boolean = false;
+
+            for each( var item:Object in form )
+            {
+                switch( item.type )
+                {
+                    case Input:
+                    case TextArea:
+                        if ( item.required ) {
+                            if (formElements[count].val == '')
+                            {
+                                formElements[count].doError();
+                                error = true;
+                            } else {
+                                formElements[count].undoError();
+                            }
+                        } else {
+                            formElements[count].undoError();
+                        }
+                        break;
+                    case Checkbox:
+                        if ( item.required ) {
+                            if ( !Checkbox( formElements[count] ).val )
+                            {
+                                formElements[count].doError();
+                                error = true;
+                            } else {
+                                formElements[count].undoError();
+                            }
+                        }
+                        break;
+                    case RadioGroup:
+                        if ( item.required ) {
+                            if ( RadioGroup( formElements[count] ).val == "" )
+                            {
+                                formElements[count].doError();
+                                error = true;
+                            } else {
+                                formElements[count].undoError();
+                            }
+                        } else {
+                            formElements[count].undoError();
+                        }
+                        break;
+                    case SubmitButton:
+                        break;
+                }
+                ++count;
+            }
+            return !error;
+        }
+
+        protected function hideFeedback():void
+        {
+            feedback.hide();
+        }
+
+        protected function close():void
+        {
+
+        }
+
+        //_________________________________________________________________________________________________________
+        //                                                                            P R I V A T E   M E T H O D S
+
     }
 }

@@ -33,6 +33,10 @@ package nl.igorski.lib.audio.core.interfaces
         function get modifiers():Vector.<IModifier>
         function set modifiers( value:Vector.<IModifier> ):void
 
+        // generation related
+        function get active():Boolean;
+        function set active( value:Boolean ):void;
+
         function generate( buffer:Vector.<Vector.<Number>> ):Boolean;
     }
 }

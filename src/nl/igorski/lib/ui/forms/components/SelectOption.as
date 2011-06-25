@@ -3,34 +3,35 @@
     import flash.display.Sprite;
     import flash.events.Event;
     import flash.events.MouseEvent;
+    import flash.text.TextFieldAutoSize;
 
     import nl.igorski.lib.definitions.Fonts;
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
     import nl.igorski.lib.ui.components.StdTextField;
 
     /**
-     * a single RadioButton, to be used in a RadioGroup, not standalone.
+     * a single select option, to be used with Select ( as part of
+     * a larger option list ), not as a standalone element
      * ...
      * @author Igor Zinken
      */
-    public class Radio extends Sprite implements IFormElement
+    public class SelectOption extends Sprite implements IFormElement
     {
-        public static const ACTIVATE	:String = "Radio::ACTIVATE";
+        public static const SELECTED        :String = "SelectOption::SELECTED";
 
-        protected var bg				:Sprite;
-        protected var checked_bg		:Sprite;
-        protected var error_bg			:Sprite;
+        private var _checked                :Boolean = false;
+        private var _value                  :String;
+        private var _label                  :String;
 
-        private var _checked			:Boolean = false;
-        private var _value				:String;
-        private var _label				:String;
+        protected var titleField            :StdTextField;
+        protected var titleFieldHighlight   :StdTextField;
 
-        protected var label				:StdTextField = new StdTextField( Fonts.LABEL );
+        private var _alpha                  :Number = 1;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function Radio( value:String = "", label:String = "" )
+        public function SelectOption( value:String = "", label:String = "" )
         {
             _value = value;
             _label = label;
@@ -41,49 +42,38 @@
         //_________________________________________________________________________________________________________
         //                                                                              P U B L I C   M E T H O D S
 
-        public function check():void
+        public function activate():void
         {
-            _checked = true;
-
-            if ( checked_bg.alpha < 1 )
-                checked_bg.alpha = 1;
+            checked = true;
         }
 
-        public function uncheck():void
+        public function deactivate():void
         {
-            _checked = false;
-
-            if ( checked_bg.alpha > 0 )
-                checked_bg.alpha = 0;
+            checked = false;
         }
 
         public function doError():void
         {
-            uncheck();
-            bg.alpha = 0;
-            error_bg.alpha = 1;
+
         }
 
         public function undoError():void
         {
-            bg.alpha = 1;
-            error_bg.alpha = 0;
+
         }
 
         //_________________________________________________________________________________________________________
         //                                                                            G E T T E R S / S E T T E R S
 
-        public function get selected():Boolean
+        public function get checked():Boolean
         {
             return _checked;
         }
 
-        public function set selected( value:Boolean ):void
+        public function set checked( value:Boolean ):void
         {
-            if ( value )
-                check();
-            else
-                uncheck();
+            _checked = true;
+            _checked ? handleRollOver() : handleRollOut();
         }
 
         public function get val():*
@@ -101,73 +91,50 @@
 
         private function initUI( e:Event ):void
         {
-            removeEventListener( Event.ADDED_TO_STAGE, initUI );
+            removeEventListener( Event.ADDED_TO_STAGE, initUI) ;
 
             draw();
 
             addEventListener( MouseEvent.CLICK, handleClick );
-
+            addEventListener( MouseEvent.ROLL_OVER, handleRollOver );
+            addEventListener( MouseEvent.ROLL_OUT, handleRollOut );
         }
 
         protected function handleClick( e:MouseEvent ):void
         {
-            switch( _checked )
+            dispatchEvent( new Event( SelectOption.SELECTED ));
+        }
+
+        protected function handleRollOver( e:MouseEvent = null ):void
+        {
+            titleFieldHighlight.alpha = 1;
+            titleField.alpha = 0;
+        }
+
+        protected function handleRollOut( e:MouseEvent = null ):void
+        {
+            if ( !checked )
             {
-                case true:
-                    uncheck();
-                    break;
-                case false:
-                    check();
-                    dispatchEvent( new Event( Radio.ACTIVATE ));
-                    break;
+                titleFieldHighlight.alpha = 0;
+                titleField.alpha = _alpha;
             }
         }
 
         //_________________________________________________________________________________________________________
         //                                                                        P R O T E C T E D   M E T H O D S
 
-        // override in subclass for custom skinning
+        // override in subclass
         protected function draw():void
         {
-            bg         = new Sprite();
-            checked_bg = new Sprite();
-            error_bg   = new Sprite();
+            titleField          = new StdTextField( Fonts.LABEL );
+            titleFieldHighlight = new StdTextField( Fonts.LABEL );
 
-            with( bg.graphics )
-            {
-                lineStyle( 1, 0xFFFFFF, 0.3 );
-                beginFill( 0xa8a7a7, 1 );
-                drawCircle( 0, 0, 7 );
-                endFill();
-            }
-            with( error_bg.graphics )
-            {
-                lineStyle( 1, 0xFFFFFF, 1 );
-                beginFill( 0x000000, 1 );
-                drawCircle( 0, 0, 7 );
-                endFill();
-            }
-            error_bg.alpha = 0;
+            titleField.autoSize = titleFieldHighlight.autoSize = TextFieldAutoSize.LEFT;
+            titleField.text     = titleFieldHighlight.text     = _label;
 
-            with ( checked_bg.graphics )
-            {
-                beginFill( 0x000000, 1 );
-                drawCircle( 0, 0, 3 );
-                endFill();
-            }
-            checked_bg.alpha = 0;
-            checked_bg.x = 0;
-            checked_bg.y = 0;
-
-            addChild( bg );
-            addChild( error_bg );
-            addChild( checked_bg );
-
-            label.text = _label;
-            label.x = 10;
-            label.y = -9;
-
-            addChild( label );
+            addChild( titleField );
+            titleFieldHighlight.alpha = 0;
+            addChild( titleFieldHighlight );
 
             buttonMode    = true;
             mouseChildren = false;

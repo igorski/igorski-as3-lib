@@ -12,4 +12,6 @@ Viewing the ExampleForm class shows the lowdown on how to quickly get a fully
 working dirty-validated form within your AS3 application. Please note that there
 are many more developed form libraries available for AS3. This is a just a quick
 way to get the most crudest of forms on screen and working. Note they were developed
-with a webserver in mind and leave the pattern validation to the backend!
+with a webserver in mind and thus include the Proxy class and leave the pattern
+validation to the backend, though by overriding the validate method of the BaseForm
+class you can create custom validations.

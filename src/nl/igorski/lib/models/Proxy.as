@@ -28,6 +28,9 @@
      * HOWEVER: as the JSON decoding utilizes the as3corelib serialization methods it
      * has been uncommented here, you can get it at Mike Chamber's gitHub
      *
+     * you can use Proxy as a single class for each of your applications models
+     * or instantiate several versions for asynchronous calls
+     *
      */
     public class Proxy extends EventDispatcher
     {
@@ -37,6 +40,9 @@
         private static const MAX_TIMEOUT    :int = 10000;
         private var _timeout                :uint;
         private var _callback               :Function;
+
+        //_________________________________________________________________________________________________________
+        //                                                                                    C O N S T R U C T O R
 
         /*
          * @url String location of the remoting service to
@@ -48,6 +54,10 @@
             if ( url != null )
                 _url = url;
         }
+
+        //_________________________________________________________________________________________________________
+        //                                                                              P U B L I C   M E T H O D S
+
         /*
          * load data from an external location
          *
@@ -87,7 +97,7 @@
 
             _callback = callback;
 
-            var request:URLRequest = new URLRequest( url );
+            var request:URLRequest       = new URLRequest( url );
             var requestVars:URLVariables = new URLVariables();
 
             for each ( var i:Object in data )
@@ -109,31 +119,6 @@
             loader.load( request );
         }
 
-        private function handleResult( e:Event ):void
-        {
-            clearInterval( _timeout );
-
-            formatData( URLLoader( e.target ).data );
-            removeListeners( URLLoader( e.target ));
-
-            // run the callback function if registered
-            if ( _callback != null )
-                _callback();
-            else
-                dispatchEvent( new Event( Event.COMPLETE ));
-        }
-
-        /*
-         * format the service's remote result into
-         * an object type of your choice, by default JSON, you may
-         * override this in your sub class
-         */
-        protected function formatData( result:* ):void
-        {
-            //_data = JSON.decode( result ); // com.adobe.serialization.json required!
-            _data = result;
-        }
-
         /*
          * called to retrieve the data returned by the remote service
          */
@@ -150,6 +135,93 @@
         {
             _data = value;
         }
+
+        //_________________________________________________________________________________________________________
+        //                                                                            G E T T E R S / S E T T E R S
+
+        //_________________________________________________________________________________________________________
+        //                                                                              E V E N T   H A N D L E R S
+
+        private function handleResult( e:Event ):void
+        {
+            clearInterval( _timeout );
+
+            formatData( URLLoader( e.target ).data );
+            removeListeners( URLLoader( e.target ));
+
+            /* run the callback function if registered
+             * else we dispatch a complete event to objects listening
+             */
+            if ( _callback != null )
+                _callback();
+            else
+                dispatchEvent( new Event( Event.COMPLETE ));
+        }
+
+        protected function httpStatusHandler( e:HTTPStatusEvent ):void
+        {
+            /*
+             * if the status is 200 we clear the timeout interval
+             * ( in case we're sending large byteArrays )
+             */
+            if( e.status == 200 ) {
+                clearInterval( _timeout );
+            } else {
+                trace( "Proxy::status " + e.status + " occured." );
+                handleRemotingError();
+            }
+        }
+
+        protected function securityErrorHandler( e:SecurityErrorEvent ):void
+        {
+            trace( "Proxy::error " + e.type + " occured." );
+            handleRemotingError();
+        }
+
+        protected function ioErrorHandler( e:IOErrorEvent ):void
+        {
+            trace( "Proxy::error " + e.type + " occured." );
+            handleRemotingError();
+        }
+
+        /*
+         * if the external server is down, we prevent eternal waits ( and possible
+         * application lockups ) by only waiting for a set amount of time
+         */
+        protected function setTimeoutHandler():void
+        {
+            _timeout = setInterval( handleRemotingTimeout, MAX_TIMEOUT );
+        }
+
+        protected function handleRemotingTimeout():void
+        {
+            handleRemotingError();
+        }
+
+        protected function handleRemotingError():void
+        {
+            clearInterval( _timeout );
+
+            View.busy = false;
+            View.feedback( "a remoting error has occured. Please try again" );
+        }
+
+        //_________________________________________________________________________________________________________
+        //                                                                        P R O T E C T E D   M E T H O D S
+
+        /*
+         * format the service's response into
+         * an object type of your choice, by default JSON, you may
+         * override this in your sub class
+         */
+        protected function formatData( result:* ):void
+        {
+            //_data = JSON.decode( result ); // com.adobe.serialization.json required!
+            _data = result;
+        }
+
+        //_________________________________________________________________________________________________________
+        //                                                                            P R I V A T E   M E T H O D S
 
         /*
          * these essentially catch all errors that might occur
@@ -169,52 +241,6 @@
             loader.removeEventListener( SecurityErrorEvent.SECURITY_ERROR, securityErrorHandler );
             loader.removeEventListener( IOErrorEvent.IO_ERROR, ioErrorHandler );
             loader.removeEventListener( Event.COMPLETE, handleResult );
-        }
-
-        private function httpStatusHandler( e:HTTPStatusEvent ):void
-        {
-            /*
-             * if the status is 200 we clear the timeout interval
-             * ( in case we're sending large byteArrays )
-             */
-            if( e.status == 200 )
-                clearInterval( _timeout );
-            else
-                trace( "Proxy::status " + e.status + " occured." );
-        }
-
-        private function securityErrorHandler( e:SecurityErrorEvent ):void
-        {
-            trace( "Proxy::error " + e.type + " occured." );
-            handleRemotingError();
-        }
-
-        private function ioErrorHandler( e:IOErrorEvent ):void
-        {
-            trace( "Proxy::error " + e.type + " occured." );
-            handleRemotingError();
-        }
-
-        /*
-         * if the external server is down, we prevent eternal waits ( and possible
-         * application lockups ) by only waiting for a set amount of time
-         *
-         */
-        private function setTimeoutHandler():void
-        {
-            _timeout = setInterval( handleRemotingTimeout, MAX_TIMEOUT );
-        }
-
-        private function handleRemotingTimeout():void
-        {
-            clearInterval( _timeout );
-            handleRemotingError();
-        }
-
-        private function handleRemotingError():void
-        {
-            View.busy = false;
-            View.feedback( "a remoting error has occured. Please try again" );
         }
     }
 }

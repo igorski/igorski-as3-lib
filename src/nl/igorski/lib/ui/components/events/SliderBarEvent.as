@@ -2,11 +2,8 @@ package nl.igorski.lib.ui.components.events
 {
     import flash.events.Event;
     /**
-     * Project:    One Bar Loop
      * Package:    nl.igorski.ui.components.events
      * Class:      SliderEvent
-     *
-     *
      *
      * @author     igor.zinken@igorski.nl
      * @version    0.1
@@ -14,8 +11,11 @@ package nl.igorski.lib.ui.components.events
     */
     public class SliderBarEvent extends Event
     {
-        public static const CHANGE	:String = 'SliderBarEvent::CHANGE';
-        public var value			:Number;
+        public static const CHANGE              :String = "SliderBarEvent::CHANGE";
+        public static const INTERACTION_START   :String = "SliderBarEvent::INTERACTION_START";
+        public static const INTERACTION_END     :String = "SliderBarEvent::INTERACTION_END";
+
+        public var value                        :Number;
         //_________________________________________________________________________________________________________________
         //                                                                                            C O N S T R U C T O R
 

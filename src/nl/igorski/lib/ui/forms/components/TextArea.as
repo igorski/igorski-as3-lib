@@ -7,28 +7,37 @@
      */
     public class TextArea extends Input
     {
+        //_________________________________________________________________________________________________________
+        //                                                                                    C O N S T R U C T O R
 
-        public function TextArea( inPlaceHolder:String = "", inHeight:int = 70 )
+        public function TextArea( placeHolderText:String = "", width:int = 190, height:int = 70 )
         {
-            super( inPlaceHolder, false, false, inHeight );
+            _multiline = true;
+            super( placeHolderText, false, false, width, height );
             style();
         }
 
-        private function style():void
+        //_________________________________________________________________________________________________________
+        //                                                                              P U B L I C   M E T H O D S
+
+        //_________________________________________________________________________________________________________
+        //                                                                            G E T T E R S / S E T T E R S
+
+        //_________________________________________________________________________________________________________
+        //                                                                              E V E N T   H A N D L E R S
+
+        //_________________________________________________________________________________________________________
+        //                                                                        P R O T E C T E D   M E T H O D S
+
+        // override in subclass for custom skinning
+        protected function style():void
         {
-            textField.border = false;
+            textField.border    = false;
             textField.multiline = true;
-            textField.wordWrap = true;
+            textField.wordWrap  = true;
         }
 
-        override public function doError( doMultiline:Boolean = false ):void
-        {
-            super.doError(true);
-        }
-
-        override public function undoError( doMultiline:Boolean = false ):void
-        {
-            super.undoError(true);
-        }
+        //_________________________________________________________________________________________________________
+        //                                                                            P R I V A T E   M E T H O D S
     }
 }

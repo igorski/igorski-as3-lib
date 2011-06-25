@@ -1,6 +1,6 @@
 package nl.igorski.lib.audio.generators.waveforms
 {
-    import nl.igorski.lib.audio.AudioSequencer;
+    import nl.igorski.lib.audio.core.AudioSequencer;
     import nl.igorski.lib.audio.generators.waveforms.base.BaseWaveForm;
 
     public final class SquareWave extends BaseWaveForm
@@ -18,7 +18,7 @@ package nl.igorski.lib.audio.generators.waveforms
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function SquareWave( aFrequency:Number = 440, aLength:Number = 1, aDecayTime:int = 1, aAttackTime:Number = 1, aReleaseTime:Number = 0, delta:int = 0, aVolume:Number = 1, aPan:Number = 0, aModifiers:Array = null ):void
+        public function SquareWave( aFrequency:Number = 440, aLength:Number = 1, aDecayTime:int = 70, aAttackTime:Number = 1, aReleaseTime:Number = 0, delta:int = 0, aVolume:Number = 1, aPan:Number = 0, aModifiers:Array = null ):void
         {
             TWO_PI          = 2 * Math.PI;
             TWO_PI_OVER_SR  =  TWO_PI / AudioSequencer.SAMPLE_RATE;
@@ -99,10 +99,10 @@ package nl.igorski.lib.audio.generators.waveforms
 
         override public function set volume( value:Number ):void
         {
-            // square waves are LOUD
             if ( isNaN( value ))
                 value = 1;
 
+            // square waves are LOUD
             var v:Number    = value * VOLUME_MULTIPLIER;
 
             _volumeL        = ( 1 - _pan ) * v;

@@ -10,18 +10,29 @@ package nl.igorski.lib.audio.core
          * User: igor.zinken
          * Date: 22-dec-2010
          * Time: 10:49:42
+         *
+         * GridManager acts as a broadcaster to all grid blocks
+         * to lock / unlock their active states during interaction
          */
 
         public static const INSTANCE    :GridManager = new GridManager();
-        
+
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
-        public function GridManager() {
+
+        public function GridManager()
+        {
+            if ( INSTANCE != null )
+                throw new Error( "cannot instantiate GridManager" );
         }
 
         //_________________________________________________________________________________________________________
         //                                                                                              P U B L I C
 
+        /*
+         * @exception index of the grid block that should remain interactive
+         *            during the locked state of the grid
+         */
         public static function lockGrid( exception:int ):void
         {
             INSTANCE.dispatchEvent( new GridEvent( GridEvent.LOCK, exception ));

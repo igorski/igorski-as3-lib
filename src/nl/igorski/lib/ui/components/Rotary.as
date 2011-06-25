@@ -17,10 +17,10 @@ package nl.igorski.lib.ui.components
     {
         private const MAX_ROTATION      :Number = 260;
 
-        private var _knob               :Sprite;
-        private var _handle             :SliderBar;
-        private var _bar                :Sprite;
-        private var _bg                 :Sprite;
+        protected var knob              :Sprite;
+        protected var handle            :SliderBar;
+        protected var bar               :Sprite;
+        protected var bg                :Sprite;
 
         private var _min				:Number;
         private var _max				:Number;
@@ -30,9 +30,22 @@ package nl.igorski.lib.ui.components
         private var _callbackDelay      :Number;
         private var _callbackIval       :uint;
 
+        private var _lastValue          :Number;
+
         //_________________________________________________________________________________________________________________
         //                                                                                            C O N S T R U C T O R
 
+        /*
+         * @size            the size of the Rotary element, this should be seen as circle radius
+         * @min             the value corresponding to the Rotary's zero degree state
+         * @max             the value corresponding to the Rotary's maximum degree state
+         * @defaultValue    the initial value of the Rotary element
+         * @enabled         whether the Rotary element is interactive
+         * @delayCallback   when the Rotary shouldn't fire it's change event on each move ( to prevent
+         *                  clogging up resources by triggering a process ) a delay ( in milliseconds )
+         *                  can be specified here. While the user drags the element no change events
+         *                  are dispatched until the dragging halts and the specified delay time has passed
+         */
         public function Rotary( size:Number = 100, min:Number = 0, max:Number = 100, defaultValue:Number = 0, enabled:Boolean = true, delayCallback:Number = 0 ):void
         {
             _size 	       = size * .5;
@@ -45,6 +58,7 @@ package nl.igorski.lib.ui.components
                 defaultValue = _min;
 
             _default   = defaultValue;
+            _lastValue = defaultValue;
 
             addEventListener( Event.ADDED_TO_STAGE, init );
         }
@@ -60,7 +74,7 @@ package nl.igorski.lib.ui.components
 
         public function get value():Number
         {
-            var pct		:Number = rotationToPercentage( _knob.rotation );
+            var pct		:Number = rotationToPercentage( knob.rotation );
             var dev		:Number = _max - _min;
 
             return pct * dev;
@@ -69,8 +83,8 @@ package nl.igorski.lib.ui.components
         public function set value( v:Number ):void
         {
             var pct     :Number = v / _max;
-            _handle.value  = pct;
-            _knob.rotation = percentageToRotation( pct );
+            handle.value  = pct;
+            knob.rotation = percentageToRotation( pct );
             drawCurve( value );
             dispatchEvent( new RotaryEvent( RotaryEvent.CHANGE, value ));
         }
@@ -105,14 +119,19 @@ package nl.igorski.lib.ui.components
             _enabled = value;
             if ( value )
             {
-                _handle.enabled = true;
-                _handle.addEventListener( SliderBarEvent.CHANGE, rotate, false, 0, true );
+                handle.enabled = true;
+                handle.addEventListener( SliderBarEvent.CHANGE, rotate, false, 0, true );
+                handle.addEventListener( SliderBarEvent.INTERACTION_START, handleStart, false, 0, true );
                 alpha = 1;
             }
             else {
-                _handle.enabled = false;
-                if ( _handle.hasEventListener( SliderBarEvent.CHANGE ))
-                    _handle.removeEventListener( SliderBarEvent.CHANGE, rotate );
+                handle.enabled = false;
+                if ( handle.hasEventListener( SliderBarEvent.CHANGE )) {
+                    handle.removeEventListener( SliderBarEvent.CHANGE, rotate );
+                    handle.removeEventListener( SliderBarEvent.INTERACTION_START, handleStart );
+                    if ( handle.hasEventListener( SliderBarEvent.INTERACTION_END ))
+                        handle.removeEventListener( SliderBarEvent.INTERACTION_END, handleEnd );
+                }
                 alpha = .35;
             }
         }
@@ -132,51 +151,129 @@ package nl.igorski.lib.ui.components
 
         private function rotate( e:SliderBarEvent ):void
         {
-            _knob.rotation = percentageToRotation( e.value );
+            knob.rotation = percentageToRotation( e.value );
             drawCurve( value );
 
             if ( _callbackDelay == 0 ) {
-                dispatchEvent( new RotaryEvent( RotaryEvent.CHANGE, value ));
+                if ( _lastValue != value )
+                    dispatchEvent( new RotaryEvent( RotaryEvent.CHANGE, value ));
+                _lastValue = value;
             }
             else {
                 clearInterval( _callbackIval );
                 _callbackIval = setInterval( function():void
                 {
                     clearInterval( _callbackIval );
-                    dispatchEvent( new RotaryEvent( RotaryEvent.CHANGE, value ));
+                    if ( _lastValue != value )
+                        dispatchEvent( new RotaryEvent( RotaryEvent.CHANGE, value ));
+                    _lastValue = value;
                 }, _callbackDelay );
             }
+        }
+
+        private function handleStart( e:SliderBarEvent ):void
+        {
+            dispatchEvent( new RotaryEvent( RotaryEvent.INTERACTION_START ));
+            handle.addEventListener( SliderBarEvent.INTERACTION_END, handleEnd, false, 0, true );
+        }
+
+        private function handleEnd( e:SliderBarEvent ):void
+        {
+            handle.removeEventListener( SliderBarEvent.INTERACTION_END, handleEnd );
+
+            if ( value != _lastValue )
+            {
+                _lastValue = value;
+                dispatchEvent( new RotaryEvent( RotaryEvent.CHANGE, value ));
+            }
+
+            dispatchEvent( new RotaryEvent( RotaryEvent.INTERACTION_END, value ));
         }
 
         //_________________________________________________________________________________________________________________
         //                                                                                P R O T E C T E D   M E T H O D S
 
-        // override in subclass for custom skinning
+        // override these in your subclass for custom skinning
         protected function draw():void
         {
             // knob - used for visual reference of current rotation
-            _knob               = new Sprite();
-            _knob.mouseEnabled  = false;
-            with ( _knob.graphics )
+            knob               = new Sprite();
+            knob.mouseEnabled  = false;
+            with ( knob.graphics )
             {
                 beginFill( 0xFFFFFF, 1 );
                 drawCircle( 0, 0, _size );
                 drawCircle( -( _size * .5 ), _size * .5, 3 );
             }
-            _knob.alpha       = 0;
-            addChild( _knob );
+            knob.alpha       = 0;
+            addChild( knob );
 
             drawBG();
-            _bar              = new Sprite();
-            _bar.mouseEnabled = false;
-            _bar.rotation     = _bg.rotation;
-            addChild( _bar );
+            bar              = new Sprite();
+            bar.mouseEnabled = false;
+            bar.rotation     = bg.rotation;
+            addChild( bar );
 
-            _handle           = new SliderBar( SliderBar.VERTICAL, _size, 0, 1, 0, false, 40 );
-            addChild( _handle );
-            _handle.alpha     = 0;
-            _handle.width     = _size * 2;
-            _handle.x         = _size;
+            handle           = new SliderBar( SliderBar.VERTICAL, _size, 0, 1, 0, false, 40 );
+            addChild( handle );
+            handle.alpha     = 0;
+            handle.width     = _size * 2;
+            handle.x         = _size;
+        }
+
+        protected function drawCurve( v:Number ):void
+        {
+            v = rotationToPercentage( knob.rotation ) * .82;
+
+            var dir				:Number = 1;
+            var r				:Number = _size - 1;
+
+            bar.graphics.clear();
+
+            var startAngle  :Number = 0;
+            var endAngle    :Number = 2 * Math.PI * v;
+            var diff        :Number = Math.abs( endAngle - startAngle );
+
+            var divs        :Number = Math.floor( diff / ( Math.PI * .25 )) + 1;
+            var span        :Number = Number( dir ) * diff / ( 2 * divs );
+            var rc          :Number = Number( r ) / Math.cos( span );
+
+            bar.graphics.lineStyle( 6, ColorSchemeManager.INTERFACE );
+            bar.graphics.moveTo( Math.cos( startAngle ) * Number( r ), Math.sin( startAngle ) * Number( r ));
+
+            for ( var i:int = 0; i < divs; ++i )
+            {
+                endAngle = startAngle + span;
+                startAngle = endAngle + span;
+                bar.graphics.curveTo( Math.cos( endAngle ) * rc, Math.sin(endAngle) * rc, Math.cos(startAngle) * Number(r), Math.sin(startAngle) * Number(r));
+            }
+        }
+
+        protected function drawBG():void
+        {
+            bg = new Sprite();
+            bg.rotation = 120;
+            addChild( bg );
+
+            var dir			:Number = 1;
+            var r			:Number = _size - 1;
+            var startAngle  :Number = 0;
+            var endAngle    :Number = 2 * Math.PI * .82;
+            var diff        :Number = Math.abs( endAngle - startAngle );
+
+            var divs        :Number = Math.floor( diff / ( Math.PI * .25 )) + 1;
+            var span        :Number = Number( dir ) * diff / ( 2 * divs );
+            var rc          :Number = Number( r ) / Math.cos( span );
+
+            bg.graphics.lineStyle( 6, 0x484848 );
+            bg.graphics.moveTo( Math.cos( startAngle ) * Number( r ), Math.sin( startAngle ) * Number( r ));
+
+            for ( var i:int = 0; i < divs; ++i )
+            {
+                endAngle = startAngle + span;
+                startAngle = endAngle + span;
+                bg.graphics.curveTo( Math.cos( endAngle ) * rc, Math.sin(endAngle) * rc, Math.cos(startAngle) * Number(r), Math.sin(startAngle) * Number(r));
+            }
         }
 
         //_________________________________________________________________________________________________________________
@@ -193,61 +290,6 @@ package nl.igorski.lib.ui.components
         private function percentageToRotation( value:Number ):Number
         {
             return value * MAX_ROTATION;
-        }
-
-        private function drawCurve( v:Number ):void
-        {
-            v = rotationToPercentage( _knob.rotation ) * .82;
-
-            var dir				:Number = 1;
-            var r				:Number = _size - 1;
-
-            _bar.graphics.clear();
-
-            var startAngle  :Number = 0;
-            var endAngle    :Number = 2 * Math.PI * v;
-            var diff        :Number = Math.abs( endAngle - startAngle );
-
-            var divs        :Number = Math.floor( diff / ( Math.PI * .25 )) + 1;
-            var span        :Number = Number( dir ) * diff / ( 2 * divs );
-            var rc          :Number = Number( r ) / Math.cos( span );
-
-            _bar.graphics.lineStyle( 6, ColorSchemeManager.INTERFACE );
-            _bar.graphics.moveTo( Math.cos( startAngle ) * Number( r ), Math.sin( startAngle ) * Number( r ));
-
-            for ( var i:int = 0; i < divs; ++i )
-            {
-                endAngle = startAngle + span;
-                startAngle = endAngle + span;
-                _bar.graphics.curveTo( Math.cos( endAngle ) * rc, Math.sin(endAngle) * rc, Math.cos(startAngle) * Number(r), Math.sin(startAngle) * Number(r));
-            }
-        }
-
-        private function drawBG():void
-        {
-            _bg = new Sprite();
-            _bg.rotation = 120;
-            addChild( _bg );
-
-            var dir			:Number = 1;
-            var r			:Number = _size - 1;
-            var startAngle  :Number = 0;
-            var endAngle    :Number = 2 * Math.PI * .82;
-            var diff        :Number = Math.abs( endAngle - startAngle );
-
-            var divs        :Number = Math.floor( diff / ( Math.PI * .25 )) + 1;
-            var span        :Number = Number( dir ) * diff / ( 2 * divs );
-            var rc          :Number = Number( r ) / Math.cos( span );
-
-            _bg.graphics.lineStyle( 6, 0x484848 );
-            _bg.graphics.moveTo( Math.cos( startAngle ) * Number( r ), Math.sin( startAngle ) * Number( r ));
-
-            for ( var i:int = 0; i < divs; ++i )
-            {
-                endAngle = startAngle + span;
-                startAngle = endAngle + span;
-                _bg.graphics.curveTo( Math.cos( endAngle ) * rc, Math.sin(endAngle) * rc, Math.cos(startAngle) * Number(r), Math.sin(startAngle) * Number(r));
-            }
         }
     }
 }

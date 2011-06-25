@@ -3,7 +3,7 @@ package nl.igorski.lib.audio.generators
     import flash.events.Event;
     import flash.events.EventDispatcher;
 
-    import nl.igorski.lib.audio.AudioSequencer;
+    import nl.igorski.lib.audio.core.AudioSequencer;
     import nl.igorski.lib.audio.core.events.AudioCacheEvent;
 
     /**

@@ -8,68 +8,102 @@
     import flash.text.TextFieldAutoSize;
     import flash.utils.*;
 
-    import nl.igorski.definitions.OBLFonts;
+    import nl.igorski.lib.definitions.Fonts;
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
-    import nl.igorski.views.components.StdTextField;
+    import nl.igorski.lib.ui.components.StdTextField;
 
     public class Input extends Sprite implements IFormElement
     {
-        public static const BLUR	:String = "Input::BLUR";
+        public static const BLUR    :String = "Input::BLUR";
 
-        public var textField		:StdTextField;
-        private var bg				:Shape = new Shape();
-        private var error_bg		:Shape = new Shape();
-        private var _text			:String;
+        protected var textField     :StdTextField;
+        protected var bg            :Shape;
+        protected var error_bg      :Shape;
+        private var _text           :String;
+        private var intervalId      :uint;
 
-        public var placeHolder		:String = "";
-        private var intervalId		:uint;
+        public var _placeHolderText :String;
 
-        public function Input( inPlaceHolder:String = "", small:Boolean = false, password:Boolean = false, bgHeight:int = 18 )
+        protected var _isSmall      :Boolean;
+        protected var _isPassword   :Boolean;
+        protected var _width        :int;
+        protected var _height       :int;
+
+        protected var _multiline    :Boolean;
+
+        //_________________________________________________________________________________________________________
+        //                                                                                    C O N S T R U C T O R
+
+        public function Input( placeHolderText:String = "", isSmall:Boolean = false, isPassword:Boolean = false, width:int = 190, height:int = 18 )
         {
-            if( inPlaceHolder != null )
-                placeHolder = inPlaceHolder;
-            _text = placeHolder;
+            _placeHolderText = placeHolderText;
+            _isSmall         = isSmall;
+            _isPassword      = isPassword;
+            _width           = width;
+            _height          = height;
+
+            _text            = placeHolderText;
 
             super();
+            draw();
+        }
 
-            if ( !small )
-                textField = new StdTextField( OBLFonts.INPUT );
-            else
-                textField = new StdTextField( OBLFonts.SMALL_INPUT );
+        //_________________________________________________________________________________________________________
+        //                                                                              P U B L I C   M E T H O D S
 
-            textField.width = bg.width;
-            textField.autoSize = TextFieldAutoSize.NONE;
-            textField.type = TextFieldType.INPUT;
+        public function doError():void
+        {
+            if ( contains( textField ))
+                removeChild( textField );
+
+            var tv:String        = textField.text;
+            textField            = new StdTextField( Fonts.INPUT_ERROR );
+            textField.multiline  = textField.wordWrap = _multiline;
+            textField.width      = bg.width;
+            textField.autoSize   = TextFieldAutoSize.NONE;
+            textField.type       = TextFieldType.INPUT;
             textField.embedFonts = true;
-            textField.border = false;
             textField.background = false;
             textField.selectable = true;
+            textField.text = tv;
 
-            if ( password )
-                textField.displayAsPassword = true;
+            addChild( textField );
+            draw();
+            swapChildren( textField, getChildAt( numChildren - 1 ));
 
-            bg.graphics.lineStyle( 1, 0xFFFFFF );
-            bg.graphics.beginFill( 0x000000, 1 );
-            bg.graphics.drawRect(0, 0, 190, bgHeight);
-            bg.graphics.endFill();
-            addChild(bg);
+            bg.alpha = 0;
+            error_bg.alpha = 1;
+        }
 
-            error_bg.graphics.lineStyle(1, 0xFF0000);
-            error_bg.graphics.beginFill(0x000000, 1);
-            error_bg.graphics.drawRect(0, 0, 190, bgHeight);
-            error_bg.graphics.endFill();
+        public function undoError():void
+        {
+            if ( contains( textField ))
+                removeChild( textField );
+
+            var tv:String        = textField.text;
+            textField            = new StdTextField( Fonts.INPUT );
+            textField.multiline  = textField.wordWrap = _multiline;
+            this.val             = tv;
+            textField.width      = bg.width;
+            textField.autoSize   = TextFieldAutoSize.NONE;
+            textField.type       = TextFieldType.INPUT;
+            textField.selectable = true;
+
+            addChild( textField );
+            draw();
+            swapChildren( textField, getChildAt( numChildren - 1 ));
+
+            bg.alpha = 1;
             error_bg.alpha = 0;
-            addChild(error_bg);
-
-    //		draw();
-            addEventListener(Event.ADDED_TO_STAGE, handleAddedToStage);
         }
 
         public function noBG():void
         {
             textField.background = false;
-            textField.border = false;
-            if ( contains( bg )) removeChild( bg );
+            textField.border     = false;
+
+            if ( contains( bg ))
+                removeChild( bg );
         }
 
         public function doBG():void
@@ -80,6 +114,9 @@
             swapChildren( textField, bg );
         }
 
+        //_________________________________________________________________________________________________________
+        //                                                                            G E T T E R S / S E T T E R S
+
         public function set editable( value:Boolean ):void
         {
             if( value )
@@ -88,15 +125,9 @@
                 textField.type = TextFieldType.DYNAMIC;
         }
 
-        public function set smalltext(value:Boolean):void
+        public function set smalltext( value:Boolean ):void
         {
-            textField.setStyle("forminput");
-        }
-
-        private function handleAddedToStage(e:Event):void
-        {
-            draw();
-            removeEventListener(Event.ADDED_TO_STAGE, handleAddedToStage);
+            textField.setStyle( Fonts.SMALL_INPUT );
         }
 
         public function set multiline( value:Boolean ):void
@@ -104,61 +135,19 @@
             textField.multiline = value;
         }
 
-        public function draw():void
-        {
-            textField.width = bg.width;
-            textField.text = _text;
-            if ( textField.multiline ) {
-                textField.height = bg.height - 2;
-                textField.y = Math.round( bg.y + 1 );
-            } else {
-                textField.height = 18;
-                textField.y = Math.round(( bg.height - 20 ) * .5 );
-            }
-            textField.addEventListener(FocusEvent.FOCUS_IN, handleTextFieldFocus);
-            textField.addEventListener(FocusEvent.FOCUS_OUT, handleTextFieldBlur);
-            addChild(textField);
-        }
-
-        private function handleTextFieldFocus(e:FocusEvent):void
-        {
-            if ( textField.text == placeHolder )
-            {
-                textField.text = " "; // for some RETARDED reason, we set a string on focus to prevent hell breaking loose
-                textField.setSelection( 0, textField.text.length );
-                intervalId = setInterval( handleInterval, 1 );
-            }
-        }
-
-        private function handleTextFieldBlur(e:FocusEvent):void
-        {
-            if(textField.text == " " || textField.text == "") {
-                textField.text = placeHolder;
-            } else {
-                if( textField.text.substring( 0,1 ) == " ")
-                    textField.text = textField.text.substring(1, textField.text.length);
-            }
-            dispatchEvent( new Event( BLUR ));
-        }
-
-        private function handleInterval():void // and here we clear the screen (to avoid password field annoyances =p)
-        {
-            clearInterval(intervalId);
-            textField.text = "";
-        }
-
         // values are of String type
         public function get val():*
         {
-            if( textField.text == placeHolder )
+            if( textField.text == _placeHolderText )
                 return "";
+
             return textField.text;
         }
 
         public function set val( value:* ):void
         {
             if( value == "" )
-                value = placeHolder;
+                value = _placeHolderText;
 
             _text = value;
             textField.text = value;
@@ -169,78 +158,134 @@
             bg.visible = value;
         }
 
-        override public function set tabIndex(value:int):void
+        override public function set tabIndex( value:int ):void
         {
             textField.tabIndex = value;
         }
 
-        override public function set tabEnabled(value:Boolean):void
+        override public function set tabEnabled( value:Boolean ):void
         {
             textField.tabEnabled = true;
         }
 
-        override public function set height(value:Number):void
+        override public function set height( value:Number ):void
         {
             bg.height = value;
             error_bg.height = value;
         }
 
-        override public function set width(value:Number):void
+        override public function set width( value:Number ):void
         {
             bg.width = value;
             error_bg.width = value;
         }
 
-        public function set wrap(value:Boolean):void
+        public function set wrap( value:Boolean ):void
         {
             textField.wordWrap = value;
         }
 
-        public function doError( doMultiline:Boolean = false ):void
+        //_________________________________________________________________________________________________________
+        //                                                                              E V E N T   H A N D L E R S
+
+        // we must set a blank space String to prevent strange
+        // behaviour occurring when setting focus on an empty text field
+        private function handleTextFieldFocus( e:FocusEvent ):void
         {
-            var _time:Number = .5;
-
-            if (contains(textField))
-                removeChild(textField);
-
-            var tv:String = textField.text;
-            textField = new StdTextField( OBLFonts.INPUT_ERROR );
-            textField.multiline = textField.wordWrap = doMultiline;
-            textField.width = bg.width;
-            textField.autoSize = TextFieldAutoSize.NONE;
-            textField.type = TextFieldType.INPUT;
-            textField.embedFonts = true;
-            textField.background = false;
-            textField.selectable = true;
-            textField.text = tv;
-            addChild( textField );
-            draw();
-            swapChildren(textField, getChildAt(numChildren - 1));
-
-            bg.alpha = 0;
-            error_bg.alpha = 1;
+            if ( textField.text == _placeHolderText )
+            {
+                textField.text = " ";
+                textField.setSelection( 0, textField.text.length );
+                intervalId = setInterval( handleInterval, 1 );
+            }
         }
 
-        public function undoError( doMultiline:Boolean = false ):void
+        private function handleTextFieldBlur( e:FocusEvent ):void
         {
-            var _time:Number = .5;
+            if( textField.text == " " || textField.text == "" )
+            {
+                textField.text = _placeHolderText;
 
-            if (contains(textField))
-                removeChild(textField);
-            var tv:String = textField.text;
-            textField = new StdTextField( OBLFonts.INPUT );
-            textField.multiline = textField.wordWrap = doMultiline;
-            this.val = tv;
-            textField.width = bg.width;
-            textField.autoSize = TextFieldAutoSize.NONE;
-            textField.type = TextFieldType.INPUT;
-            textField.selectable = true;
-            addChild(textField);
-            draw();
-            swapChildren(textField, getChildAt(numChildren - 1));
+            } else {
+                if( textField.text.substring( 0,1 ) == " ")
+                    textField.text = textField.text.substring( 1, textField.text.length );
+            }
+            dispatchEvent( new Event( BLUR ));
+        }
 
-            bg.alpha = 1;
+        //_________________________________________________________________________________________________________
+        //                                                                        P R O T E C T E D   M E T H O D S
+
+        // override these in subclass for custom skinning
+        protected function draw():void
+        {
+            bg       = new Shape();
+            error_bg = new Shape();
+
+            with ( bg.graphics )
+            {
+                lineStyle( 1, 0xFFFFFF );
+                beginFill( 0x000000, 1 );
+                drawRect( 0, 0, _width, _height );
+                endFill();
+            }
+            addChild( bg );
+
+            with ( error_bg.graphics )
+            {
+                lineStyle( 1, 0xFF0000 );
+                beginFill( 0x000000, 1 );
+                drawRect( 0, 0, _width, _height );
+                endFill();
+            }
             error_bg.alpha = 0;
+            addChild( error_bg );
+
+            if ( !_isSmall )
+                textField = new StdTextField( Fonts.INPUT );
+            else
+                textField = new StdTextField( Fonts.SMALL_INPUT );
+
+            textField.width      = bg.width;
+            textField.autoSize   = TextFieldAutoSize.NONE;
+            textField.type       = TextFieldType.INPUT;
+            textField.embedFonts = true;
+            textField.border     = false;
+            textField.background = false;
+            textField.selectable = true;
+            textField.multiline  = _multiline;
+
+            if ( _isPassword )
+                textField.displayAsPassword = true;
+
+            textField.width = bg.width;
+            textField.text  = _text;
+
+            if ( textField.multiline ) {
+                textField.height = bg.height - 2;
+                textField.y = Math.round( bg.y + 1 );
+            } else {
+                textField.height = 18;
+                textField.y = Math.round(( bg.height - 20 ) * .5 );
+            }
+            addChild( textField );
+            addListeners();
+        }
+
+        //_________________________________________________________________________________________________________
+        //                                                                            P R I V A T E   M E T H O D S
+
+        private function addListeners():void
+        {
+            textField.addEventListener( FocusEvent.FOCUS_IN, handleTextFieldFocus );
+            textField.addEventListener( FocusEvent.FOCUS_OUT, handleTextFieldBlur );
+        }
+
+        // here we clear the field's text content ( avoiding password field annoyances =p )
+        private function handleInterval():void
+        {
+            clearInterval( intervalId );
+            textField.text = "";
         }
     }
 }

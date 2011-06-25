@@ -11,16 +11,19 @@
      */
     public class ProgressBar extends Sprite
     {
-        private var _width	:Number = 150;
-        private var _height	:Number = 2;
+        private var _width	:Number;
+        private var _height	:Number;
 
         private var bg		:Sprite;
         private var bar		:Sprite;
         //_________________________________________________________________________________________________________________
         //                                                                                            C O N S T R U C T O R
 
-        public function ProgressBar()
+        public function ProgressBar( width:Number = 150, height:Number = 2 )
         {
+            _width  = width;
+            _height = height;
+
             addEventListener( Event.ADDED_TO_STAGE, initUI );
         }
 
@@ -32,7 +35,7 @@
             with( bar.graphics )
             {
                 clear();
-                beginFill( 0x7F7F7F, 1 );
+                beginFill( 0xFFFFFF, 1 );
                 drawRect( bg.x, bg.y, ( _width / 100 ) * pct, _height );
                 endFill();
             }

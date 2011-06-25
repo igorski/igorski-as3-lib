@@ -23,6 +23,9 @@
         private var _content		:Bitmap;
         private var _cacheAsBitmap	:Boolean = false;
 
+        //_________________________________________________________________________________________________________
+        //                                                                                    C O N S T R U C T O R
+
         public function LoadImage( inFile:String, inSmoothing:Boolean = true, inCacheAsBitmap:Boolean = false ):void
         {
             _smoothing     = inSmoothing;
@@ -30,12 +33,26 @@
             _file = inFile;
         }
 
+        //_________________________________________________________________________________________________________
+        //                                                                              P U B L I C   M E T H O D S
+
         public function load():void
         {
             loader = new Loader();
             addListeners( loader.contentLoaderInfo );
             loader.load( new URLRequest(_file) );
         }
+
+        public function get():Bitmap
+        {
+            return _content;
+        }
+
+        //_________________________________________________________________________________________________________
+        //                                                                            G E T T E R S / S E T T E R S
+
+        //_________________________________________________________________________________________________________
+        //                                                                              E V E N T   H A N D L E R S
 
         private function loadComplete( e:Event ):void
         {
@@ -54,6 +71,12 @@
             dispatchEvent( new Event( ERROR ));
         }
 
+        //_________________________________________________________________________________________________________
+        //                                                                        P R O T E C T E D   M E T H O D S
+
+        //_________________________________________________________________________________________________________
+        //                                                                            P R I V A T E   M E T H O D S
+
         private function addListeners( obj:IEventDispatcher ):void
         {
             obj.addEventListener( Event.COMPLETE, loadComplete, false, 0, true );
@@ -64,11 +87,6 @@
         {
             obj.removeEventListener( Event.COMPLETE, loadComplete );
             obj.removeEventListener( IOErrorEvent.IO_ERROR, ioErrorHandler );
-        }
-
-        public function get():Bitmap
-        {
-            return _content;
         }
     }
 }

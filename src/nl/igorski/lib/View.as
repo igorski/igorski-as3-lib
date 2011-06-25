@@ -16,23 +16,18 @@ package nl.igorski.lib
         public static var INSTANCE  :View = new View();
         
         private var _busy           :Boolean = false;
-        
+
+        //_________________________________________________________________________________________________________
+        //                                                                                    C O N S T R U C T O R
+
         public function View()
         {
             if ( INSTANCE != null )
                 throw new Error( "cannot instantiate View" );
         }
-        
-        public static function get busy():Boolean
-        {
-            return INSTANCE._busy;
-        }
-        
-        public static function set busy( value:Boolean ):void
-        {
-            INSTANCE._busy = value;
-            INSTANCE.dispatchEvent( new ViewEvent( ViewEvent.BUSY, null ));
-        }
+
+        //_________________________________________________________________________________________________________
+        //                                                                              P U B L I C   M E T H O D S
 
         /*
          * launch a popup window showing @content
@@ -61,5 +56,33 @@ package nl.igorski.lib
         {
             INSTANCE.dispatchEvent( new ViewEvent( type ));
         }
+
+        //_________________________________________________________________________________________________________
+        //                                                                            G E T T E R S / S E T T E R S
+
+        /*
+         * you can trigger a busy state to alter the appearance of your
+         * application ( for instance blinding the application with a semi-transparent
+         * overlay or altering mouse cursors during remoting calls )
+         */
+        public static function get busy():Boolean
+        {
+            return INSTANCE._busy;
+        }
+
+        public static function set busy( value:Boolean ):void
+        {
+            INSTANCE._busy = value;
+            INSTANCE.dispatchEvent( new ViewEvent( ViewEvent.BUSY, null ));
+        }
+
+        //_________________________________________________________________________________________________________
+        //                                                                              E V E N T   H A N D L E R S
+
+        //_________________________________________________________________________________________________________
+        //                                                                        P R O T E C T E D   M E T H O D S
+
+        //_________________________________________________________________________________________________________
+        //                                                                            P R I V A T E   M E T H O D S
     }
 }

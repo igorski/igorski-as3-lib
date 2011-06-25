@@ -6,7 +6,7 @@ package nl.igorski.lib.audio.ui
     import flash.text.TextField;
     import flash.utils.Dictionary;
 
-    import nl.igorski.lib.audio.AudioSequencer;
+    import nl.igorski.lib.audio.core.AudioSequencer;
     import nl.igorski.lib.audio.core.GridManager;
     import nl.igorski.lib.audio.core.events.GridEvent;
     import nl.igorski.lib.audio.definitions.Pitch;
@@ -22,9 +22,9 @@ package nl.igorski.lib.audio.ui
          */
         public static const STEPS   :int = 16;
         
-        private var grid            :Vector.<Vector.<NoteGridBlock>>;
-        private var pitchBlocks     :Vector.<NoteGridBlock>;
-        private var frequencies     :Vector.<Dictionary>;
+        protected var grid          :Vector.<Vector.<NoteGridBlock>>;
+        protected var pitchBlocks   :Vector.<NoteGridBlock>;
+        protected var frequencies   :Vector.<Dictionary>;
 
         public var blockMargin      :int = NoteGridBlock.WIDTH + 3;
         public var _octaves         :int = 8;
@@ -35,9 +35,9 @@ package nl.igorski.lib.audio.ui
         public var down             :Sprite;
         public var onScreen         :Boolean = true;
 
-        public var _container       :Sprite;
-        public var _mask            :Sprite;
-        private var _color          :uint;
+        protected var _container    :Sprite;
+        protected var _mask         :Sprite;
+        protected var _color        :uint;
         public var pointer          :Sprite;
 
         // the voice this grid is connected to, i.e. this grid's data
@@ -145,7 +145,7 @@ package nl.igorski.lib.audio.ui
          * called by the NoteGridBlocks to add
          * a note in the frequencies dictionary
          */
-        public function setNote( position:int = 0, frequency:Number = 440, length:Number = 1 ):void
+        public function setNote( position:int = 0, frequency:Number = 440, length:Number = 1, autoCache:Boolean = true ):void
         {
             // clear old value if existed - this will effectively remove the old cached value too
             if ( frequencies[ position ][ frequency ] != null )
@@ -155,11 +155,14 @@ package nl.igorski.lib.audio.ui
             var vo:VOAudioEvent = new VOAudioEvent({ frequency: frequency,
                                                      length:    length,
                                                      delta:     position,
+                                                     autoCache: autoCache,
                                                      voice:     _voice });
+
             frequencies[ position ][ frequency ] = vo;
 
-            // flush the cache for this grid
-            AudioSequencer.invalidateCache( _voice );
+            // flush the cache for this grid ( only if this object is autocaching )
+            if ( autoCache )
+                AudioSequencer.invalidateCache( _voice );
         }
         
         /**
@@ -375,7 +378,7 @@ package nl.igorski.lib.audio.ui
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S
         
-        private function showPitchText( octave:int = -1 ):void
+        protected function showPitchText( octave:int = -1 ):void
         {
             if ( octave == -1 )
                 octave = _curOctave;

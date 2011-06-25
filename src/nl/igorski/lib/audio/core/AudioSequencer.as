@@ -1,4 +1,4 @@
-package nl.igorski.lib.audio
+package nl.igorski.lib.audio.core
 {
     import flash.events.EventDispatcher;
     import flash.events.SampleDataEvent;
@@ -10,9 +10,10 @@ package nl.igorski.lib.audio
     import nl.igorski.lib.audio.core.interfaces.IBusModifier;
     import nl.igorski.lib.audio.core.interfaces.IModifier;
     import nl.igorski.lib.audio.generators.Synthesizer;
-import nl.igorski.lib.audio.generators.waveforms.base.BaseWaveForm;
-import nl.igorski.lib.audio.model.vo.VOAudioEvent;
-import nl.igorski.lib.audio.ui.NoteGrid;
+    import nl.igorski.lib.audio.generators.waveforms.base.BaseWaveForm;
+    import nl.igorski.lib.audio.helpers.TempoHelper;
+    import nl.igorski.lib.audio.model.vo.VOAudioEvent;
+    import nl.igorski.lib.audio.ui.NoteGrid;
 
     public final class AudioSequencer extends EventDispatcher
     {
@@ -21,11 +22,9 @@ import nl.igorski.lib.audio.ui.NoteGrid;
          * User: igor.zinken
          * Date: 20-dec-2010
          * Time: 14:43:22
-         */
-
-        /**
+         *
          * Synthesizer is a singleton class as multiple instances each operating in their own buffer
-         * create a massive glitchfest, instantiate more voices for multi-timbral usage
+         * create a massive glitchfest, you can instantiate more voices for multi-timbral usage
          *
          * BUFFER_SIZE  : the lower the buffer, the lower the latency ( perceived delay between events )
          *                when set too low, crack and pops and other non-nice artifacts occur in the audio
@@ -125,6 +124,8 @@ import nl.igorski.lib.audio.ui.NoteGrid;
             INSTANCE._modifiers    = new Vector.<Vector.<IModifier>>( 3, true );
             INSTANCE._busModifiers = [];
             INSTANCE.init( false );
+
+            invalidateCache();
         }
         
         public static function clearBus():void
@@ -299,17 +300,21 @@ import nl.igorski.lib.audio.ui.NoteGrid;
             return INSTANCE._synthesizer.caching;
         }
         
-        public function get tempo():Number
+        public static function get tempo():Number
         {
             return INSTANCE._tempo;
         }
         
-        public function set tempo( value:Number ):void
+        public static function set tempo( value:Number ):void
         {
             INSTANCE._tempo     = value;
-            BYTES_PER_BEAT      = Math.round(( 60 / value ) * ( SAMPLE_RATE * BYTES_PER_SAMPLE ));
-            BYTES_PER_TICK      = Math.round(( SAMPLE_RATE * 60 ) / ( value * 16 ));
+            BYTES_PER_BEAT      = TempoHelper.getBytesPerBeat( value );
+            BYTES_PER_TICK      = BYTES_PER_BEAT * .25;
+          //  BYTES_PER_TICK      = Math.round(( SAMPLE_RATE * 60 ) / ( value * 16 ));
             BYTES_PER_BAR       = BYTES_PER_BEAT * 4;
+
+            if ( INSTANCE._synthesizer != null )
+                invalidateCache();
         }
         
         public static function get volume():Number
@@ -417,25 +422,26 @@ import nl.igorski.lib.audio.ui.NoteGrid;
 
                 // create a busmodifier array for attaching FX to the master bus
                 _busModifiers   = [];
+
+                invalidateCache();
             }
             _buffer    = new Vector.<Vector.<Number>>( 2, true );
             _buffer[0] = new Vector.<Number>( BUFFER_SIZE, true );
             _buffer[1] = new Vector.<Number>( BUFFER_SIZE, true );
             _position  = 0.0;
             
-            invalidateCache();
 
             _sound = new Sound();
         }
 
         /*
          * clears the currently cached audio buffer
-         * @gridNum specify a grid index to invalidate for that grid, not passing this argument clears all grids
-         * @invalidateChildren also invalidates all audioEvent caches beloning to the grid
+         * @voice specify a voice index to invalidate for that voice, not passing this argument clears all voices
+         * @invalidateChildren also invalidates all audioEvent caches belonging to the voice's samples
          */
-        public static function invalidateCache( gridNum:int = -1, invalidateChildren:Boolean = false ):void
+        public static function invalidateCache( voice:int = -1, invalidateChildren:Boolean = false ):void
         {
-            INSTANCE._synthesizer.invalidateCache( gridNum, invalidateChildren );
+            INSTANCE._synthesizer.invalidateCache( voice, invalidateChildren );
         }
 
         private function clearBuffer(): void

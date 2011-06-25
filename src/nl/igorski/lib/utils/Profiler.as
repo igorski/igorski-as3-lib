@@ -1,7 +1,7 @@
 package nl.igorski.lib.utils
 {
     import flash.utils.getTimer;
-	/**
+    /**
      * ...
      * @author Igor Zinken
      * 
@@ -13,7 +13,10 @@ package nl.igorski.lib.utils
     public final class Profiler 
     {
         private var startTime:Number;
-        
+
+        //_________________________________________________________________________________________________________
+        //                                                                                    C O N S T R U C T O R
+
         /*
          * @autoStart set to true to immediately set the startTime
          *            during instantiation
@@ -23,7 +26,10 @@ package nl.igorski.lib.utils
             if ( autoStart )
                 start();
         }
-        
+
+        //_________________________________________________________________________________________________________
+        //                                                                              P U B L I C   M E T H O D S
+
         /*
          * set the start time, should be set when
          * starting the test
@@ -41,5 +47,17 @@ package nl.igorski.lib.utils
         {
             return ( getTimer() - startTime );
         }
+
+        //_________________________________________________________________________________________________________
+        //                                                                            G E T T E R S / S E T T E R S
+
+        //_________________________________________________________________________________________________________
+        //                                                                              E V E N T   H A N D L E R S
+
+        //_________________________________________________________________________________________________________
+        //                                                                        P R O T E C T E D   M E T H O D S
+
+        //_________________________________________________________________________________________________________
+        //                                                                            P R I V A T E   M E T H O D S
     }
 }

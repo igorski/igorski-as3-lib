@@ -8,10 +8,8 @@ package nl.igorski.lib.ui.components
     import nl.igorski.lib.ui.components.events.SliderBarEvent;
 
     /**
-     * Project:    One Bar Loop
      * Package:    nl.igorski.ui.components
      * Class:      SliderBar
-     *
      *
      *
      * @author     igor.zinken@igorski.nl
@@ -20,8 +18,8 @@ package nl.igorski.lib.ui.components
     */
     public class SliderBar extends Sprite
     {
-        public static const HORIZONTAL	:String = 'SliderBar::HORIZONTAL';
-        public static const VERTICAL	:String = 'SliderBar::VERTICAL';
+        public static const HORIZONTAL	:String = "SliderBar::HORIZONTAL";
+        public static const VERTICAL	:String = "SliderBar::VERTICAL";
 
         private const HANDLE_SIZE		:int = 10;
         private var HANDLE_SIZE_HEIGHT  :int;
@@ -33,8 +31,10 @@ package nl.igorski.lib.ui.components
         private var _default			:Number;
         private var _enabled			:Boolean;
 
-        private var track				:Sprite;
-        private var handle				:Sprite;
+        protected var track				:Sprite;
+        protected var handle			:Sprite;
+
+        private var _lastValue          :Number;
         //_________________________________________________________________________________________________________________
         //                                                                                            C O N S T R U C T O R
 
@@ -52,6 +52,7 @@ package nl.igorski.lib.ui.components
                 defaultValue = _min;
 
             _default   = defaultValue;
+            _lastValue = defaultValue;
 
             addEventListener( Event.ADDED_TO_STAGE, init );
         }
@@ -71,10 +72,10 @@ package nl.igorski.lib.ui.components
             {
                 case HORIZONTAL:
                     pct = handle.x / _size;
-                break;
+                    break;
                 case VERTICAL:
                     pct = handle.y / _size;
-                break;
+                    break;
             }
             return ( dev * pct ) + _min;
         }
@@ -87,12 +88,13 @@ package nl.igorski.lib.ui.components
             {
                 case HORIZONTAL:
                     handle.x = pct * _size;
-                break;
+                    break;
                 case VERTICAL:
                     handle.y = pct * _size;
-                break;
+                    break;
             }
             dispatchEvent( new SliderBarEvent( SliderBarEvent.CHANGE, value ));
+            _lastValue = value;
         }
 
         public function get min():Number
@@ -163,6 +165,8 @@ package nl.igorski.lib.ui.components
             }
             stage.addEventListener( MouseEvent.MOUSE_UP, handleMouseUp, false, 0, true );
             addEventListener( MouseEvent.MOUSE_MOVE, handleDrag , false, 0, true );
+
+            dispatchEvent( new SliderBarEvent( SliderBarEvent.INTERACTION_START ));
         }
 
         private function handleMouseUp( e:MouseEvent ):void
@@ -170,6 +174,14 @@ package nl.igorski.lib.ui.components
             handle.stopDrag();
             stage.removeEventListener( MouseEvent.MOUSE_UP, handleMouseUp );
             removeEventListener( MouseEvent.MOUSE_MOVE, handleDrag );
+
+            if ( _lastValue != value )
+            {
+                _lastValue = value;
+                dispatchEvent( new SliderBarEvent( SliderBarEvent.CHANGE, value ));
+            }
+
+            dispatchEvent( new SliderBarEvent( SliderBarEvent.INTERACTION_END, value ));
         }
 
         private function handleDrag( e:MouseEvent ):void
@@ -190,12 +202,12 @@ package nl.igorski.lib.ui.components
             {
                 case HORIZONTAL:
                     track.graphics.drawRoundRect( 0, 0, _size + HANDLE_SIZE, 10, 5 );
-                break;
+                    break;
                 case VERTICAL:
                     track.graphics.drawRoundRect( 0, 0, 10, _size + HANDLE_SIZE, 5 );
                     rotation = 180;
                     y += _size;
-                break;
+                    break;
             }
             track.graphics.endFill();
 
@@ -208,6 +220,7 @@ package nl.igorski.lib.ui.components
             addChild( track );
             addChild( handle );
         }
+
         //_________________________________________________________________________________________________________________
         //                                                                                    P R I V A T E   M E T H O D S
     }

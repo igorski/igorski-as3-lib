@@ -4,6 +4,8 @@ package nl.igorski.lib.audio.ui
     import flash.display.Sprite;
     import flash.events.MouseEvent;
     import flash.geom.Point;
+    import flash.ui.Mouse;
+    import flash.ui.MouseCursor;
     import flash.utils.setTimeout;
     import nl.igorski.lib.audio.core.GridManager;
 
@@ -23,7 +25,7 @@ package nl.igorski.lib.audio.ui
         private var _octave                 :int;
         private var _length                 :Number;
         private var _index                  :int;        
-		private var _color		            :uint;
+        private var _color                  :uint;
         private var _active                 :Boolean = false;
         private var _grid                   :NoteGrid;
         private var _position               :int;
@@ -40,7 +42,7 @@ package nl.igorski.lib.audio.ui
             _pitch    = pitch;
             _octave   = myOctave;
             _index    = myIndex;
-			_color    = myColor;
+            _color    = myColor;
             _position = myPosition;
             
             init();
@@ -77,7 +79,8 @@ package nl.igorski.lib.audio.ui
             _length = length;
             
             _active = true;
-            _grid.setNote( _position, frequency, length );
+
+            _grid.setNote( _position, frequency, length, false );
         }
         
         /**
@@ -207,17 +210,19 @@ package nl.igorski.lib.audio.ui
             addListeners();
         }
 
-        private function handleRollOver( e:MouseEvent ):void
+        protected function handleRollOver( e:MouseEvent ):void
         {
+            Mouse.cursor = MouseCursor.HAND;
             hover.alpha = .5;
         }
 
-        private function handleRollOut( e:MouseEvent ):void
+        protected function handleRollOut( e:MouseEvent ):void
         {
+            Mouse.cursor = MouseCursor.AUTO;
             hover.alpha = 0;
         }
 
-        private function handleMouseDown( e:MouseEvent ):void
+        protected function handleMouseDown( e:MouseEvent ):void
         {
             switch( _active )
             {
@@ -304,15 +309,15 @@ package nl.igorski.lib.audio.ui
             if ( hasEventListener( MouseEvent.ROLL_OVER ))
                 return;
             
-            addEventListener( MouseEvent.ROLL_OVER, handleRollOver,   false, 0, true );
-            addEventListener( MouseEvent.ROLL_OUT, handleRollOut,     false, 0, true );
+            addEventListener( MouseEvent.ROLL_OVER,  handleRollOver,  false, 0, true );
+            addEventListener( MouseEvent.ROLL_OUT,   handleRollOut,   false, 0, true );
             addEventListener( MouseEvent.MOUSE_DOWN, handleMouseDown, false, 0, true );
         }
         
         private function removeListeners():void
         {
-            removeEventListener( MouseEvent.ROLL_OVER, handleRollOver );
-            removeEventListener( MouseEvent.ROLL_OUT, handleRollOut );
+            removeEventListener( MouseEvent.ROLL_OVER,  handleRollOver );
+            removeEventListener( MouseEvent.ROLL_OUT,   handleRollOut );
             removeEventListener( MouseEvent.MOUSE_DOWN, handleMouseDown );
         }
     }

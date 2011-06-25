@@ -14,7 +14,7 @@ package nl.igorski.lib.audio.generators.waveforms
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function Triangle( aFrequency:Number = 440, aLength:Number = 1, aDecayTime:int = 1, aAttackTime:Number = 1, aReleaseTime:Number = 0, delta:int = 0, aVolume:Number = 1, aPan:Number = 0, aModifiers:Array = null ):void
+        public function Triangle( aFrequency:Number = 440, aLength:Number = 1, aDecayTime:int = 70, aAttackTime:Number = 1, aReleaseTime:Number = 0, delta:int = 0, aVolume:Number = 1, aPan:Number = 0, aModifiers:Array = null ):void
         {
             DECAY_MULTIPLIER = 300;
             super( aFrequency, aLength, aDecayTime, aAttackTime, aReleaseTime, delta, aVolume, aPan, aModifiers );
@@ -47,6 +47,7 @@ package nl.igorski.lib.audio.generators.waveforms
                     tmp = ( _phase * 4.0 - 3.0 );
                     amplitude = ( tmp * tmp - 1.0 ) * env * env * .5;
                 }
+
                 _phase += _phaseIncr;
 
                 if( _phase >= 1 )
@@ -61,17 +62,13 @@ package nl.igorski.lib.audio.generators.waveforms
                 {
                     for ( var m:int = 0; m < _modifiers.length; ++m )
                     {
-                        l[i] += _modifiers[m].process( amplitude * _volumeL );
-                        r[i] += _modifiers[m].process( amplitude * _volumeR );
+                        l[i] += _modifiers[m].process( Math.abs( amplitude * _volumeL ));
+                        r[i] += _modifiers[m].process( Math.abs( amplitude * _volumeR ));
                     }
                 }
                 else {
-                    // 30 x faster than Math.abs!!
-                    // i = (x ^ (x >> 31)) - (x >> 31);
-                    tmp = amplitude * _volumeL;
-                    l[i] += (tmp ^ (tmp >> 31)) - (tmp >> 31);
-                    tmp = amplitude * _volumeR;
-                    r[i] += (tmp ^ (tmp >> 31)) - (tmp >> 31);
+                    l[i] += Math.abs( amplitude * _volumeL );
+                    r[i] += Math.abs( amplitude * _volumeR );
                 }
                 if ( _length <= 1 )
                 {

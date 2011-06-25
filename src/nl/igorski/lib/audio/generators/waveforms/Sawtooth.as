@@ -15,7 +15,7 @@ package nl.igorski.lib.audio.generators.waveforms
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function Sawtooth( aFrequency:Number = 440, aLength:Number = 1, aDecayTime:int = 1, aAttackTime:Number = 1, aReleaseTime:Number = 0, delta:int = 0, aVolume:Number = 1, aPan:Number = 0, aModifiers:Array = null ):void
+        public function Sawtooth( aFrequency:Number = 440, aLength:Number = 1, aDecayTime:int = 70, aAttackTime:Number = 1, aReleaseTime:Number = 0, delta:int = 0, aVolume:Number = 1, aPan:Number = 0, aModifiers:Array = null ):void
         {
             DECAY_MULTIPLIER = 300;
             super( aFrequency, aLength, aDecayTime, aAttackTime, aReleaseTime, delta, aVolume, aPan, aModifiers );
@@ -54,12 +54,15 @@ package nl.igorski.lib.audio.generators.waveforms
                     --_phase;
 
                 // envelopes
+
                 if ( _attack < 1 ) {
                     _attack += attackIncr;
                     amplitude *= _attack;
                 }
-                tmp = amplitude + .5;
-                amplitude -= ( tmp < 0 ) ? int( tmp - 1 ) : int( tmp );
+                //tmp = amplitude + .5;
+                //amplitude -= ( tmp < 0 ) ? int( tmp - 1 ) : int( tmp );
+
+                amplitude = amplitude - ( Math.floor( amplitude + .5 ));
 
                 if ( _modifiers.length > 0 )
                 {
@@ -111,6 +114,7 @@ package nl.igorski.lib.audio.generators.waveforms
         {
             if ( isNaN( value ) || value == 0 )
                 value = 70;
+
             _decay = Math.round( value * DECAY_MULTIPLIER );
         }
         

@@ -4,113 +4,60 @@
     import flash.events.Event;
     import flash.events.MouseEvent;
 
-    import nl.igorski.definitions.OBLFonts;
+    import nl.igorski.lib.definitions.Fonts;
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
-    import nl.igorski.views.components.StdTextField;
+    import nl.igorski.lib.ui.components.StdTextField;
+
     /**
      * ...
      * @author Igor Zinken
      */
     public class Checkbox extends Sprite implements IFormElement
     {
-        private var bg			:Sprite = new Sprite();
-        private var checked_bg	:Sprite = new Sprite();
-        private var error_bg	:Sprite = new Sprite();
+        private var bg			:Sprite;
+        private var checked_bg	:Sprite;
+        private var error_bg	:Sprite;
 
         private var _checked	:Boolean = false;
-        private var title		:String = '';
-        private var labelWidth	:int = 0;
+        private var _title		:String = '';
+        private var _labelWidth	:int = 0;
 
-        private var label		:StdTextField = new StdTextField( OBLFonts.DEFAULT );
+        private var label		:StdTextField = new StdTextField( Fonts.FORM_TEXT );
 
-        public function Checkbox(inTitle:String = null, inLabelWidth:int = 250)
+        //_________________________________________________________________________________________________________
+        //                                                                                    C O N S T R U C T O R
+
+        public function Checkbox( title:String = null, labelWidth:int = 250 )
         {
-            if (inTitle != null)
-                title = inTitle;
-            labelWidth = inLabelWidth;
+            if ( title != null)
+                _title  = title;
 
-            addEventListener(Event.ADDED_TO_STAGE, initUI);
+            _labelWidth = labelWidth;
+
+            addEventListener( Event.ADDED_TO_STAGE, initUI );
         }
 
-        private function initUI(e:Event):void
-        {
-            removeEventListener(Event.ADDED_TO_STAGE, initUI);
-
-            draw();
-
-            addEventListener(MouseEvent.CLICK, handleClick);
-        }
-
-        // override in subclass for custom skinning
-        protected function draw():void
-        {
-            with ( bg.graphics )
-            {
-                lineStyle(1, 0x000000, 0.3);
-                beginFill(0xFFFFFF, 1);
-                drawRect(0, 0, 15, 15)
-                endFill();
-            }
-            with( checked_bg.graphics )
-            {
-                beginFill(0x33384f, 1);
-                drawRect(0, 0, 7, 7);
-                endFill();
-            }
-            checked_bg.x = 4;
-            checked_bg.y = 4;
-
-            with( error_bg.graphics )
-            {
-                lineStyle(1, 0xFFFFFF, 1);
-                beginFill(0x000000, 1);
-                drawRect(0, 0, 10, 10);
-                endFill();
-            }
-            error_bg.alpha = 0;
-
-            addChild(bg);
-            addChild(error_bg);
-
-            label.wordWrap = true;
-            label.width = labelWidth;
-            label.text = title;
-            label.x = 22;
-            label.y = -2;
-
-            // addChild(label);
-        }
-
-        private function handleClick(e:MouseEvent):void
-        {
-            switch( _checked )
-            {
-                case true:
-                    uncheck();
-                    break;
-                case false:
-                    check();
-                    break;
-            }
-        }
+        //_________________________________________________________________________________________________________
+        //                                                                              P U B L I C   M E T H O D S
 
         public function check():void
         {
             _checked = true;
-            if (!contains(checked_bg))
-                addChild(checked_bg);
+
+            if ( !contains( checked_bg ))
+                addChild( checked_bg );
         }
 
         public function uncheck():void
         {
             _checked = false;
-            if (contains(checked_bg))
-                removeChild(checked_bg);
+
+            if ( contains( checked_bg ))
+                removeChild( checked_bg );
         }
 
         public function doError():void
         {
-            var _time:Number = .5;
             uncheck();
 
             bg.alpha = 0;
@@ -119,10 +66,12 @@
 
         public function undoError():void
         {
-            var _time:Number = .5;
             bg.alpha = 1;
             error_bg.alpha = 0;
         }
+
+        //_________________________________________________________________________________________________________
+        //                                                                            G E T T E R S / S E T T E R S
 
         public function get val():*
         {
@@ -158,5 +107,79 @@
         {
             _checked = ( value == 1 );
         }
+
+        //_________________________________________________________________________________________________________
+        //                                                                              E V E N T   H A N D L E R S
+
+        private function initUI(e:Event):void
+        {
+            removeEventListener( Event.ADDED_TO_STAGE, initUI );
+            addEventListener( MouseEvent.CLICK, handleClick );
+            draw();
+        }
+
+        private function handleClick(e:MouseEvent):void
+        {
+            switch( _checked )
+            {
+                case true:
+                    uncheck();
+                    break;
+                case false:
+                    check();
+                    break;
+            }
+        }
+
+        //_________________________________________________________________________________________________________
+        //                                                                        P R O T E C T E D   M E T H O D S
+
+        // override in subclass for custom skinning
+        protected function draw():void
+        {
+            bg         = new Sprite();
+            checked_bg = new Sprite();
+            error_bg   = new Sprite();
+
+            with ( bg.graphics )
+            {
+                lineStyle(1, 0x000000, 0.3);
+                beginFill(0xFFFFFF, 1);
+                drawRect(0, 0, 15, 15)
+                endFill();
+            }
+            with( checked_bg.graphics )
+            {
+                beginFill(0x33384f, 1);
+                drawRect(0, 0, 7, 7);
+                endFill();
+            }
+            checked_bg.x = 4;
+            checked_bg.y = 4;
+
+            with( error_bg.graphics )
+            {
+                lineStyle(1, 0xFFFFFF, 1);
+                beginFill(0x000000, 1);
+                drawRect(0, 0, 10, 10);
+                endFill();
+            }
+            error_bg.alpha = 0;
+
+            addChild(bg);
+            addChild(error_bg);
+
+            label.wordWrap = true;
+            label.width = _labelWidth;
+            label.text = _title;
+            label.x = 22;
+            label.y = -2;
+
+            // addChild(label);
+        }
+
+        //_________________________________________________________________________________________________________
+        //                                                                            P R I V A T E   M E T H O D S
+
     }
 }

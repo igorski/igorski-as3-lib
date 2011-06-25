@@ -2,10 +2,8 @@ package nl.igorski.lib.ui.components.events
 {
     import flash.events.Event;
     /**
-     * Project:    One Bar Loop
      * Package:    nl.igorski.ui.components.events
      * Class:      RotaryEvent
-     *
      *
      *
      * @author     igor.zinken@igorski.nl
@@ -14,8 +12,11 @@ package nl.igorski.lib.ui.components.events
     */
     public class RotaryEvent extends Event
     {
-        public static const CHANGE	:String = 'RotaryEvent::CHANGE';
-        public var value			:Number;
+        public static const CHANGE              :String = "RotaryEvent::CHANGE";
+        public static const INTERACTION_START   :String = "RotaryEvent::INTERACTION_START";
+        public static const INTERACTION_END     :String = "RotaryEvent::INTERACTION_END";
+
+        public var value                        :Number;
         //_________________________________________________________________________________________________________________
         //                                                                                            C O N S T R U C T O R
 

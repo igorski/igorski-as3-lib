@@ -1,7 +1,7 @@
 package nl.igorski.lib.audio.modifiers
 {
     import flash.utils.ByteArray;    
-    import nl.igorski.lib.audio.AudioSequencer;
+    import nl.igorski.lib.audio.core.AudioSequencer;
     import nl.igorski.lib.audio.core.interfaces.IBusModifier;
 
     public class Delay implements IBusModifier

@@ -4,5 +4,6 @@ package nl.igorski.lib.audio.core.interfaces
     {
         function process( input:Number ):Number;
         function getData():Object;
+        function setData( data:Object ):void;
     }
 }

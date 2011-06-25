@@ -1,17 +1,22 @@
 package nl.igorski.lib.audio.generators
 {
-    import nl.igorski.lib.audio.AudioSequencer;
+    import nl.igorski.lib.audio.core.AudioSequencer;
     /**
      * ...
      * @author Igor Zinken
      */
     public final class BufferGenerator 
     {
-        
+        //_________________________________________________________________________________________________________
+        //                                                                                    C O N S T R U C T O R
+
         public function BufferGenerator() 
         {
             throw new Error( "cannot instantiate BufferGenerator" );
         }
+
+        //_________________________________________________________________________________________________________
+        //                                                                              P U B L I C   M E T H O D S
 
         /*
          * generates an empty stereo buffer to write audio into
@@ -64,5 +69,17 @@ package nl.igorski.lib.audio.generators
                 output[1][i] += ( merge[1][i] * level );
             }
         }
+
+        //_________________________________________________________________________________________________________
+        //                                                                            G E T T E R S / S E T T E R S
+
+        //_________________________________________________________________________________________________________
+        //                                                                              E V E N T   H A N D L E R S
+
+        //_________________________________________________________________________________________________________
+        //                                                                        P R O T E C T E D   M E T H O D S
+
+        //_________________________________________________________________________________________________________
+        //                                                                            P R I V A T E   M E T H O D S
     }
 }

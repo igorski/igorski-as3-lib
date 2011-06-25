@@ -2,7 +2,13 @@ package nl.igorski.lib.ui.forms.components.interfaces
 {
     public interface IFormElement
     {
-        function set val( value:* ):void;
         function get val():*;
+        function set val( value:* ):void;
+
+        function doError():void;
+        function undoError():void;
+
+        function get tabIndex():int;
+        function set tabIndex( value:int ):void;
     }
 }

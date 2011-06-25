@@ -16,7 +16,8 @@ these contain a plethora of everyday "components" which are all ActionScript-bas
 
 note that this entire package has been made by someone who will do his
 utmost to NOT use the Adobe Flash IDE for his applications. As such
-these components rely heavily on the graphics property of the Sprite class.
+these components rely heavily on the graphics property of the Sprite class
+and use no external assets for their presentation.
 
 These components provide basic functionality for use in user interfaces. They
 were meant to be extended ( override the "draw" methods for creating your

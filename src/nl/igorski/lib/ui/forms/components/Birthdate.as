@@ -14,29 +14,39 @@
     public class Birthdate extends Sprite implements IFormElement
     {
 
-        private var year    :Input = new Input();
-        private var month   :Input = new Input();
-        private var day     :Input = new Input();
+        private var year    :Input;
+        private var month   :Input;
+        private var day     :Input;
 
         private var margin  :int = 5;
 
+        //_________________________________________________________________________________________________________
+        //                                                                                    C O N S T R U C T O R
+
         public function Birthdate()
         {
-            addEventListener(Event.ADDED_TO_STAGE, initUI);
+            addEventListener( Event.ADDED_TO_STAGE, initUI );
         }
 
-        private function initUI(e:Event):void
+        //_________________________________________________________________________________________________________
+        //                                                                              P U B L I C   M E T H O D S
+
+        public function doError():void
         {
-            removeEventListener( Event.ADDED_TO_STAGE, initUI );
-
-            year.width = month.width = day.width *= 0.31;
-            month.x = year.x + year.width + margin;
-            day.x = month.x + month.width + margin;
-
-            addChild( year );
-            addChild( month );
-            addChild( day );
+            year.doError();
+            month.doError();
+            day.doError();
         }
+
+        public function undoError():void
+        {
+            year.undoError();
+            month.undoError();
+            day.undoError();
+        }
+
+        //_________________________________________________________________________________________________________
+        //                                                                            G E T T E R S / S E T T E R S
 
         /*
          * dates must be in yyyy-mm-dd format
@@ -54,5 +64,47 @@
         {
             return year.val + "-" + month.val + "-" + day.val;
         }
+
+        override public function set tabIndex( value:int ):void
+        {
+            year.tabIndex  = value;
+            month.tabIndex = ++value;
+            day.tabIndex   = ++value;
+        }
+
+        override public function get tabIndex():int
+        {
+            return year.tabIndex;
+        }
+
+        //_________________________________________________________________________________________________________
+        //                                                                              E V E N T   H A N D L E R S
+
+        private function initUI(e:Event):void
+        {
+            removeEventListener( Event.ADDED_TO_STAGE, initUI );
+            draw();
+        }
+
+        //_________________________________________________________________________________________________________
+        //                                                                        P R O T E C T E D   M E T H O D S
+
+        protected function draw():void
+        {
+            year    = new Input();
+            month   = new Input();
+            day     = new Input();
+
+            year.width  = month.width = day.width *= 0.31;
+            month.x     = year.x + year.width + margin;
+            day.x       = month.x + month.width + margin;
+
+            addChild( year );
+            addChild( month );
+            addChild( day );
+        }
+
+        //_________________________________________________________________________________________________________
+        //                                                                            P R I V A T E   M E T H O D S
     }
 }

@@ -1,7 +1,5 @@
 package nl.igorski.lib.audio.generators.waveforms
 {
-    import nl.igorski.lib.audio.AudioSequencer;
-    import nl.igorski.lib.audio.core.interfaces.IModifier;
     import nl.igorski.lib.audio.generators.waveforms.base.BaseWaveForm;
 
     public final class Noise extends BaseWaveForm
@@ -17,7 +15,7 @@ package nl.igorski.lib.audio.generators.waveforms
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function Noise( aFrequency:Number = 440, aLength:Number = 1, aDecayTime:int = 1, aAttackTime:Number = 1, aReleaseTime:Number = 0, delta:int = 0, aVolume:Number = .45, aPan:Number = 0, aModifiers:Array = null ):void
+        public function Noise( aFrequency:Number = 440, aLength:Number = 1, aDecayTime:int = 70, aAttackTime:Number = 1, aReleaseTime:Number = 0, delta:int = 0, aVolume:Number = .45, aPan:Number = 0, aModifiers:Array = null ):void
         {
             DECAY_MULTIPLIER = 50;
 

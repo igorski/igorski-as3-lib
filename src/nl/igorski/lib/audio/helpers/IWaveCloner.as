@@ -12,12 +12,18 @@ package nl.igorski.lib.audio.helpers
      * Date: 13-4-11
      * Time: 9:58
      */
-    public class IWaveCloner
+    public final class IWaveCloner
     {
+        //_________________________________________________________________________________________________________
+        //                                                                                    C O N S T R U C T O R
+
         public function IWaveCloner()
         {
             throw new Error( "cannot instantiate IWaveCloner" );
         }
+
+        //_________________________________________________________________________________________________________
+        //                                                                              P U B L I C   M E T H O D S
 
         /*
          * creates a new instance of the source object ( must extend
@@ -37,5 +43,17 @@ package nl.igorski.lib.audio.helpers
 
             return output;
         }
+
+        //_________________________________________________________________________________________________________
+        //                                                                            G E T T E R S / S E T T E R S
+
+        //_________________________________________________________________________________________________________
+        //                                                                              E V E N T   H A N D L E R S
+
+        //_________________________________________________________________________________________________________
+        //                                                                        P R O T E C T E D   M E T H O D S
+
+        //_________________________________________________________________________________________________________
+        //                                                                            P R I V A T E   M E T H O D S
     }
 }

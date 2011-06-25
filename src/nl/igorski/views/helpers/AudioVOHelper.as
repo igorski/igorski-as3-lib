@@ -1,29 +1,37 @@
-package nl.igorski.lib.audio.core.events
+package nl.igorski.views.helpers
 {
+    import flash.utils.getDefinitionByName;
+
     /**
      * Created by IntelliJ IDEA.
      * User: igorzinken
-     * Date: 12-04-11
-     * Time: 19:00
-     * To change this template use File | Settings | File Templates.
+     * Date: 17-05-11
+     * Time: 23:14
      */
-    import flash.events.Event;
-
-    public class AudioCacheEvent extends Event
+    public class AudioVOHelper
     {
-        public static const CACHE_STARTED   :String = "AudioCacheEvent::CACHE_STARTED";
-        public static const CACHE_COMPLETED :String = "AudioCacheEvent::CACHE_COMPLETED";
-
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
-
-        public function AudioCacheEvent( type:String )
+        public function AudioVOHelper()
         {
-            super( type, true );
+            throw new Error( "cannot instantiate WaveFormHelper" );
         }
 
         //_________________________________________________________________________________________________________
         //                                                                              P U B L I C   M E T H O D S
+
+        public static function getClass( className:String ):Class
+        {
+            className = getClassName( className );
+
+            return getDefinitionByName( className ) as Class;
+        }
+
+        public static function getClassName( className:String ):String
+        {
+             // 17th may 2011, we moved packages
+            return className.split( "lib.util.audio" ).join( "lib.audio" );
+        }
 
         //_________________________________________________________________________________________________________
         //                                                                            G E T T E R S / S E T T E R S
@@ -36,5 +44,6 @@ package nl.igorski.lib.audio.core.events
 
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S
+
     }
 }
