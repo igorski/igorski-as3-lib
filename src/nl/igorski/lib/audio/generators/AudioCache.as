@@ -118,6 +118,11 @@ package nl.igorski.lib.audio.generators
 
             write( data, _cacheFillCounter * AudioSequencer.BUFFER_SIZE, length );
         }
+
+        public function get length():int
+        {
+            return _length;
+        }
         
         /*
          * getters and setters for checking whether this instance's cache

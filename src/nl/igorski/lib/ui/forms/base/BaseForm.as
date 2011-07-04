@@ -19,6 +19,7 @@
     import nl.igorski.lib.ui.components.StdTextField;
     import nl.igorski.lib.ui.forms.components.SubmitButton;
     import nl.igorski.lib.ui.forms.components.TextArea;
+    import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
 
     /**
      * the Base Form class, to be extended by each form you create. This class
@@ -117,12 +118,12 @@
         public function getData():Array
         {
             var _data:Array = [];
-            for each( var item:Object in form )
+            for ( var i:int = 0; i < form.length; ++i )
             {
                 // collect all form values for the elements that can actually hold a value
-                if ( item.type != SubmitButton && item.type != Divider && item.type != FormText )
+                if ( formElements[i] is IFormElement )
                 {
-                    var data:Object = { name: item.name, value: value( item.name ) };
+                    var data:Object = { name: form[i].name, value: value( form[i].name )};
                     _data.push( data );
                 }
             }
@@ -141,7 +142,7 @@
             return ret;
         }
 
-        public function showFeedback( inText:String = '' ):void
+        public function showFeedback( text:String = "" ):void
         {
             if ( feedback == null )
                 feedback = new FeedbackWindow();
@@ -149,7 +150,7 @@
             if ( !contains( feedback ))
                 addChild( feedback );
 
-            feedback.show( inText );
+            feedback.show( text );
 
             feedback.x = Math.round( ( _formWidth * .5 ) - ( feedback.width * .5 ) - 25 );
             feedback.y = Math.round( ( height * .5 ) - ( feedback.height * .5 ));
@@ -173,6 +174,7 @@
         private function closeFeedback( e:Event ):void
         {
             feedback.removeEventListener( FeedbackWindow.CLOSE, closeFeedback );
+            feedback.destroy();
             removeChild( feedback );
             feedback = null;
         }
@@ -241,49 +243,49 @@
                     if ( formLabel.text.indexOf("*") == -1 )
                         formLabel.text += " *";
                 }
-                var input:*;
+                var element:*;
 
                 switch( item.type )
                 {
                     case Divider:
-                        input = new Divider( item.width || ( inputMargin + 190 ), item.height || 18 );
+                        element = new Divider( item.width || ( inputMargin + 190 ), item.height || 18 );
                         break;
                     case Input:
-                        input = new Input( item.placeHolderText || "", item.isSmall || false, item.isPassword || false, item.width || 190, item.height || 18 );
+                        element = new Input( item.placeHolderText || "", item.isSmall || false, item.isPassword || false, item.width || 190, item.height || 18 );
                         if ( showLabelInInputField )
                         {
                             formLabel.x = inputMargin + 5;
-                            input.addEventListener( FocusEvent.FOCUS_IN, hideLabel );
-                            labelFieldBindings.push( { field: input, lbl: formLabel } );
+                            element.addEventListener( FocusEvent.FOCUS_IN, hideLabel );
+                            labelFieldBindings.push( { field: element, lbl: formLabel } );
                         }
                         break;
                     case TextArea:
-                        input = new TextArea( item.placeHolderText || "", item.width || 190, item.height || 70 );
+                        element = new TextArea( item.placeHolderText || "", item.width || 190, item.height || 70 );
                         if ( showLabelInInputField )
                         {
                             formLabel.x = inputMargin + 5;
-                            input.addEventListener( FocusEvent.FOCUS_IN, hideLabel );
-                            labelFieldBindings.push( { field: input, lbl: formLabel } );
+                            element.addEventListener( FocusEvent.FOCUS_IN, hideLabel );
+                            labelFieldBindings.push( { field: element, lbl: formLabel } );
                         }
                         break;
                     case Birthdate:
-                        input = new Birthdate();
+                        element = new Birthdate();
                         break;
                     case Checkbox:
-                        input = new Checkbox( item.label );
+                        element = new Checkbox( item.label );
                         break;
                     case RadioGroup:
-                        input = new RadioGroup( item.label, item.options, item.maxWidth || 200 );
+                        element = new RadioGroup( item.label, item.options, item.maxWidth || 200 );
                         break;
                     case Select:
-                        input = new Select( item.label, item.options, item.width || 190, item.height || 125 );
+                        element = new Select( item.label, item.options, item.width || 190, item.height || 125 );
                         break;
                     case SubmitButton:
-                        input = new SubmitButton( item.label );
-                        input.addEventListener( MouseEvent.CLICK, handleSubmit );
+                        element = new SubmitButton( item.label );
+                        element.addEventListener( MouseEvent.CLICK, handleSubmit );
                         break;
                     case FormText:
-                        input = new FormText( item.label );
+                        element = new FormText( item.text );
                         break;
                     case null:
                         formLabel.y = curY;
@@ -292,55 +294,55 @@
                 }
 
                 // calculate the position of the current object by it's type
-                if ( input != null )
+                if ( element != null )
                 {
-                    formLabel.y = input.y = curY;
+                    formLabel.y = element.y = curY;
 
                     switch( item.type ) {
                         default:
-                            input.x = inputMargin;
+                            element.x = inputMargin;
                             break;
                         case Divider:
-                            input.x = labelMargin;
+                            element.x = labelMargin;
                             break;
                         case RadioGroup:
                             if ( item.options.length > 2 ) {
-                                input.y += formLabel.height + margin;
-                                input.x = formLabel.x;
+                                element.y += formLabel.height + margin;
+                                element.x = formLabel.x;
                             } else {
-                                input.x = inputMargin;
+                                element.x = inputMargin;
                             }
                             break;
                         case FormText:
-                            input.x = formLabel.x;
+                            element.x = formLabel.x;
                             break;
                         case SubmitButton:
                             formLabel.text = "";
-                            input.y = curY -( 8 );
-                            input.x = inputMargin;
+                            element.y = curY -( 8 );
+                            element.x = inputMargin;
                             break;
                     }
-                    addChild( input );
+                    addChild( element );
                     addChild( formLabel );
 
                     // calculate the next Y position according to the current input type
                     switch( item.type )
                     {
                         default:
-                            curY = ( input.y + 18 + margin );
+                            curY = ( element.y + 18 + margin );
                             break;
                         case TextArea:
-                            curY = ( input.y + 75 + margin );
+                            curY = ( element.y + 75 + margin );
                             break;
                         case RadioGroup:
                         case FormText:
-                            curY = ( input.y + input.height + margin );
+                            curY = ( element.y + element.height + margin );
                             break;
                     }
-                    formElements.push( input );
+                    formElements.push( element );
                 }
-                input.tabIndex = curTabIndex;
-                curTabIndex    = input.tabIndex + 1;
+                element.tabIndex = curTabIndex;
+                curTabIndex    = element.tabIndex + 1;
             }
             // here we set the Select elements as the highest children in the DisplayList
             // as they can overlap other form elements when they're opened

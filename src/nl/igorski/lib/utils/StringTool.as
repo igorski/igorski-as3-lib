@@ -46,6 +46,9 @@
         {
             str = new XMLDocument( str ).firstChild.nodeValue;
 
+            if ( str == null )
+                return "";
+
             var replaces:Array = [
                                     [ "&ldquo;", "'" ],
                                     [ "&rdquo;", "'" ],

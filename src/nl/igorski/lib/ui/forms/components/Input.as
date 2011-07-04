@@ -30,6 +30,8 @@
         protected var _height       :int;
 
         protected var _multiline    :Boolean;
+        protected var _wordwrap     :Boolean;
+        protected var _tabIndex     :int;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
@@ -58,7 +60,8 @@
 
             var tv:String        = textField.text;
             textField            = new StdTextField( Fonts.INPUT_ERROR );
-            textField.multiline  = textField.wordWrap = _multiline;
+            textField.multiline  = _multiline;
+            textField.wordWrap   = _wordwrap;
             textField.width      = bg.width;
             textField.autoSize   = TextFieldAutoSize.NONE;
             textField.type       = TextFieldType.INPUT;
@@ -71,6 +74,8 @@
             draw();
             swapChildren( textField, getChildAt( numChildren - 1 ));
 
+            tabIndex = _tabIndex;
+
             bg.alpha = 0;
             error_bg.alpha = 1;
         }
@@ -82,12 +87,15 @@
 
             var tv:String        = textField.text;
             textField            = new StdTextField( Fonts.INPUT );
-            textField.multiline  = textField.wordWrap = _multiline;
+            textField.multiline  = _multiline;
+            textField.wordWrap   = _wordwrap;
             this.val             = tv;
             textField.width      = bg.width;
             textField.autoSize   = TextFieldAutoSize.NONE;
             textField.type       = TextFieldType.INPUT;
             textField.selectable = true;
+
+            tabIndex = _tabIndex;
 
             addChild( textField );
             draw();
@@ -132,6 +140,7 @@
 
         public function set multiline( value:Boolean ):void
         {
+            _multiline          = value;
             textField.multiline = value;
         }
 
@@ -160,7 +169,9 @@
 
         override public function set tabIndex( value:int ):void
         {
-            textField.tabIndex = value;
+            _tabIndex          = value;
+            tabEnabled         = true;
+            textField.tabIndex = _tabIndex;
         }
 
         override public function set tabEnabled( value:Boolean ):void
@@ -182,6 +193,7 @@
 
         public function set wrap( value:Boolean ):void
         {
+            _wordwrap          = value;
             textField.wordWrap = value;
         }
 
@@ -254,6 +266,7 @@
             textField.background = false;
             textField.selectable = true;
             textField.multiline  = _multiline;
+            textField.wordWrap   = _wordwrap;
 
             if ( _isPassword )
                 textField.displayAsPassword = true;

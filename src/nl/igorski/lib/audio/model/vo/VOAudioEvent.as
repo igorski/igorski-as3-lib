@@ -3,8 +3,8 @@ package nl.igorski.lib.audio.model.vo
     import flash.events.EventDispatcher;
 
     import nl.igorski.lib.audio.core.AudioSequencer;
-import nl.igorski.lib.audio.core.events.AudioCacheEvent;
-import nl.igorski.lib.audio.generators.AudioCache;
+    import nl.igorski.lib.audio.core.events.AudioCacheEvent;
+    import nl.igorski.lib.audio.generators.AudioCache;
     import nl.igorski.lib.audio.generators.BufferGenerator;
     import nl.igorski.lib.audio.generators.waveforms.base.BaseWaveForm;
     import nl.igorski.lib.audio.helpers.IWaveCloner;
@@ -75,10 +75,8 @@ import nl.igorski.lib.audio.generators.AudioCache;
         {
             isCaching = true;
 
-            // the 16 shows this is hard-wired to work
-            // within a 16-step sequencer constraint
-            var sampleLength:int = ((( AudioSequencer.BYTES_PER_BAR / 8 ) / 16 ) * length ) + 0.5|0;
-            sampleLength = ( 65536 * ( length / 16 )) + 0.5|0; // TODO: above seems to be expensive on CPU! and this SEEMS to work...
+            // 16-note context ( one tick = sixteenth note )
+            var sampleLength:int = AudioSequencer.BYTES_PER_TICK * length + 0.5|0;
             sample = new AudioCache( sampleLength );
 
             wave = IWaveCloner.clone( AudioSequencer.getVoice( voice ));

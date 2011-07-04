@@ -8,7 +8,7 @@ package nl.igorski.lib.ui.components
 
     import nl.igorski.lib.ui.components.events.RotaryEvent;
     import nl.igorski.lib.ui.components.events.SliderBarEvent;
-    import nl.igorski.managers.ColorSchemeManager;
+
     /**
      * ...
      * @author Igor Zinken
@@ -238,7 +238,7 @@ package nl.igorski.lib.ui.components
             var span        :Number = Number( dir ) * diff / ( 2 * divs );
             var rc          :Number = Number( r ) / Math.cos( span );
 
-            bar.graphics.lineStyle( 6, ColorSchemeManager.INTERFACE );
+            bar.graphics.lineStyle( 4, 0xE7161C );
             bar.graphics.moveTo( Math.cos( startAngle ) * Number( r ), Math.sin( startAngle ) * Number( r ));
 
             for ( var i:int = 0; i < divs; ++i )
@@ -255,8 +255,8 @@ package nl.igorski.lib.ui.components
             bg.rotation = 120;
             addChild( bg );
 
-            var dir			:Number = 1;
-            var r			:Number = _size - 1;
+            var dir         :Number = 1;
+            var r           :Number = _size - 1;
             var startAngle  :Number = 0;
             var endAngle    :Number = 2 * Math.PI * .82;
             var diff        :Number = Math.abs( endAngle - startAngle );
@@ -265,7 +265,7 @@ package nl.igorski.lib.ui.components
             var span        :Number = Number( dir ) * diff / ( 2 * divs );
             var rc          :Number = Number( r ) / Math.cos( span );
 
-            bg.graphics.lineStyle( 6, 0x484848 );
+            bg.graphics.lineStyle( 4, 0x484848 );
             bg.graphics.moveTo( Math.cos( startAngle ) * Number( r ), Math.sin( startAngle ) * Number( r ));
 
             for ( var i:int = 0; i < divs; ++i )

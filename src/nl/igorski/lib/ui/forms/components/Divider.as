@@ -19,7 +19,7 @@
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function Divider( width:int = 0, height:int = 0 )
+        public function Divider( width:int = 100, height:int = 1 )
         {
             _height = height;
             _width  = width;

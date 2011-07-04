@@ -77,22 +77,23 @@ package nl.igorski.lib.audio.helpers
         }
 
         /*
-         * calculations within a musical context:
-         * calculate the amount of bytes in each beat
-         *
-         * @tempo          tempo in BPM
-         * @bytesPerSample the bytes per sample
-         * @sampleRate     the sample rate in Hz
-         *
-         */
-        public static function getBytesPerBeat( tempo:Number = 120, bytesPerSample:int = 8, sampleRate:int = 44100 ):Number
+        * calculations within a musical context:
+        * calculate the sample length required for each
+        * beat at a given tempo
+        *
+        * @tempo          tempo in BPM
+        * @sampleRate     the sample rate in Hz
+        *
+        */
+
+        public static function calculateSamplesBerBeat( tempo:Number = 120, length:int = 1, sampleRate:int = 44100 ):int
         {
-            return Math.round(( 60 / tempo ) * ( sampleRate * bytesPerSample ));
+            return Math.round(( sampleRate * 60 ) / ( tempo * length ));
         }
 
-        public static function getBitsPerBeat( tempo:Number = 120, bytesPerSample:int = 8, sampleRate:int = 44100 ):Number
+        public static function calculateSixteenthNoteSamples( tempo:Number = 120, sampleRate:int = 44100 ):int
         {
-            return getBytesPerBeat( tempo, bytesPerSample, sampleRate ) * 8;
+            return Math.round(( sampleRate * 60 ) / tempo ) * .25;
         }
 
         //_________________________________________________________________________________________________________

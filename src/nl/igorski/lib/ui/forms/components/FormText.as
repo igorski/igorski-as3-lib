@@ -20,7 +20,7 @@
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function FormText( text:String = '', width:int = 300 )
+        public function FormText( text:String = "", width:int = 300 )
         {
             _text  = text;
             _width = width;

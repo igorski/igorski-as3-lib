@@ -8,7 +8,6 @@
     import flash.text.TextFormat;
 
     import nl.igorski.lib.definitions.Fonts;
-    import nl.igorski.lib.utils.StringTool;
 
     /*
      * StdTextField creates a styled TextField using externally embedded fonts, be sure
@@ -16,23 +15,20 @@
      */
     public class StdTextField extends TextField
     {
-        private var styleType	:String;
-        private var fontSize	:int = 16;
-        private var _styleSheet	:StyleSheet = new StyleSheet();
-        private var useCSS		:Boolean;
+        private var _styleType   :String;
+        private var _textFormat  :TextFormat;
+        private var _styleSheet  :StyleSheet;
+        private var _useCSS      :Boolean;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function StdTextField( inStyleType:String = Fonts.DEFAULT, inFontSize:int = 16, inUseCSS:Boolean = false )
+        public function StdTextField( styleType:String = Fonts.DEFAULT, useCSS:Boolean = false )
         {
             super();
 
-            if ( inStyleType != null )
-                styleType = inStyleType;
-
-            fontSize        = inFontSize;
-            useCSS          = inUseCSS;
+            _styleType      = styleType;
+            _useCSS         = useCSS;
 
             autoSize        = TextFieldAutoSize.LEFT;
             embedFonts      = true;
@@ -40,12 +36,13 @@
 
             antiAliasType   = AntiAliasType.ADVANCED;
 
-            // by default we generate standard HTML text styles ( for accenting hyperlinks )
-            var link:Object     = new Object();
-            link.textDecoration = "underline";
-            _styleSheet.setStyle( "a", link );
-            link.textDecoration = "none";
-            _styleSheet.setStyle( "a:hover", link );
+            // CSS requested ? generate some styles to resemble HTML hyperlink styles
+            if ( _useCSS ) {
+                _styleSheet         = new StyleSheet();
+                var link:Object     = new Object();
+                link.textDecoration = "underline";
+                _styleSheet.setStyle( "a", link );
+            }
         }
 
         //_________________________________________________________________________________________________________
@@ -53,16 +50,21 @@
 
         public function setStyle( style:String ):void
         {
-            setTextFormat( Fonts.getTextFormat( style ), 0, text.length );
+            if ( style != _styleType || _textFormat == null )
+            {
+                _styleType  = style;
+                _textFormat = Fonts.getTextFormat( style ), 0, text.length;
+            }
+            setTextFormat( _textFormat );
 
-            if ( useCSS )
+            if ( _useCSS )
                 styleSheet =  _styleSheet;
         }
 
-        public function setSize( fs:int = 12, sub:int = 0 ):void
+        public function setStyleSheet( styleSheet:StyleSheet ):void
         {
-            var l:Number = text.length;
-            setTextFormat( new TextFormat( styleType, fs, 0xFF0000, true ), sub, l );
+            _styleSheet = styleSheet;
+            setStyle( _styleType );
         }
 
         /*
@@ -95,15 +97,17 @@
         override public function set text( value:String ):void
         {
             super.text = value;
+
             if(  value != "" )
-                setStyle( styleType );
+                setStyle( _styleType );
         }
 
         override public function set htmlText( value:String ):void
         {
-            super.htmlText = StringTool.html_entity_decode( value );
+            super.htmlText = value;
+
             if ( value != "" )
-                setStyle( styleType );
+                setStyle( _styleType );
         }
 
         //_________________________________________________________________________________________________________

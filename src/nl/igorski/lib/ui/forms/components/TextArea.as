@@ -13,8 +13,9 @@
         public function TextArea( placeHolderText:String = "", width:int = 190, height:int = 70 )
         {
             _multiline = true;
+            _wordwrap  = true;
+
             super( placeHolderText, false, false, width, height );
-            style();
         }
 
         //_________________________________________________________________________________________________________
@@ -28,14 +29,6 @@
 
         //_________________________________________________________________________________________________________
         //                                                                        P R O T E C T E D   M E T H O D S
-
-        // override in subclass for custom skinning
-        protected function style():void
-        {
-            textField.border    = false;
-            textField.multiline = true;
-            textField.wordWrap  = true;
-        }
 
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S

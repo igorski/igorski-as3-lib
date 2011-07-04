@@ -11,7 +11,7 @@ package nl.igorski.lib.audio.core
     import nl.igorski.lib.audio.core.interfaces.IModifier;
     import nl.igorski.lib.audio.generators.Synthesizer;
     import nl.igorski.lib.audio.generators.waveforms.base.BaseWaveForm;
-    import nl.igorski.lib.audio.helpers.TempoHelper;
+    import nl.igorski.lib.audio.helpers.BulkCacher;
     import nl.igorski.lib.audio.model.vo.VOAudioEvent;
     import nl.igorski.lib.audio.ui.NoteGrid;
 
@@ -52,7 +52,7 @@ package nl.igorski.lib.audio.core
 
         private var _buffer                 :Vector.<Vector.<Number>>;
         private var _lastBuffer             :int;
-        private var _position               :Number;
+        private var _position               :int;
         private var _stepPosition           :int = 0;
         
         private var _synthesizer            :Synthesizer;
@@ -105,6 +105,16 @@ package nl.igorski.lib.audio.core
             INSTANCE._isPlaying      = true;
             INSTANCE._lastBuffer     = getTimer();
             INSTANCE._soundChannel   = INSTANCE._sound.play();
+        }
+
+        public static function pause():void
+        {
+            if ( !INSTANCE._isPlaying )
+                return;
+
+            INSTANCE._sound.removeEventListener( SampleDataEvent.SAMPLE_DATA, INSTANCE.processAudio );
+            INSTANCE._isPlaying = false;
+            INSTANCE.clearBuffer();
         }
 
         public static function stop():void
@@ -284,6 +294,11 @@ package nl.igorski.lib.audio.core
         {
             return INSTANCE._position;
         }
+
+        public static function get stepPosition():int
+        {
+            return INSTANCE._stepPosition;
+        }
   
         public static function get latency():Number
         {
@@ -308,9 +323,11 @@ package nl.igorski.lib.audio.core
         public static function set tempo( value:Number ):void
         {
             INSTANCE._tempo     = value;
-            BYTES_PER_BEAT      = TempoHelper.getBytesPerBeat( value );
+            BYTES_PER_BEAT      = Math.round(( SAMPLE_RATE * 60 ) / value  );
+
+            // AudioSequencer works within a sixteen notes per bar context
+            // the bytes per tick defines the bytes per sixteenth notes
             BYTES_PER_TICK      = BYTES_PER_BEAT * .25;
-          //  BYTES_PER_TICK      = Math.round(( SAMPLE_RATE * 60 ) / ( value * 16 ));
             BYTES_PER_BAR       = BYTES_PER_BEAT * 4;
 
             if ( INSTANCE._synthesizer != null )
@@ -361,29 +378,25 @@ package nl.igorski.lib.audio.core
             _lastBuffer = getTimer();
             */
             clearBuffer();
-            _synthesizer.synthesize( _buffer );
+
+            // don't do anything if the BulkCacher is crunching
+            if ( !BulkCacher.isCaching )
+                _synthesizer.synthesize( _buffer );
                 
-            var beatcounter:int   = 0;
-            
             var l:Vector.<Number> = _buffer[0];
             var r:Vector.<Number> = _buffer[1];
-    
-            // multiplication by .0625 translates as division by 16 ( the steps in the sequencer )
-            var bps:int = Math.round( BYTES_PER_BEAT * .0625 );
-            
+
             var doModifiers:Boolean = ( _busModifiers.length > 0 );
             
             for ( var i:int = 0; i < BUFFER_SIZE; ++i )
             {
-                ++beatcounter;
-                if ( beatcounter * BYTES_PER_SAMPLE >= bps )
+                if ( _position % BYTES_PER_TICK == 0 )
                 {
                     ++_stepPosition;
                     if ( _stepPosition == 16 )
                         _stepPosition = 0;
 
                     handleTick();
-                    beatcounter = 0;
                 }
                 if ( doModifiers )
                 {
@@ -394,8 +407,8 @@ package nl.igorski.lib.audio.core
                     e.data.writeFloat( l[i] * _volume );
                     e.data.writeFloat( r[i] * _volume );
                 }
+                ++_position;
             }
-            //_position = to;
         }
 
         //_________________________________________________________________________________________________________
@@ -409,6 +422,7 @@ package nl.igorski.lib.audio.core
             if ( createObjects )
             {
                 // create a synthesizer for audio output
+                // we hard coded the amount of voices / grids here ( 3 )
                 _synthesizer    = new Synthesizer( 3 );
 
                 // create a voice vector for multiple wave shapes
@@ -425,23 +439,26 @@ package nl.igorski.lib.audio.core
 
                 invalidateCache();
             }
-            _buffer    = new Vector.<Vector.<Number>>( 2, true );
-            _buffer[0] = new Vector.<Number>( BUFFER_SIZE, true );
-            _buffer[1] = new Vector.<Number>( BUFFER_SIZE, true );
-            _position  = 0.0;
-            
+            _buffer       = new Vector.<Vector.<Number>>( 2, true );
+            _buffer[0]    = new Vector.<Number>( BUFFER_SIZE, true );
+            _buffer[1]    = new Vector.<Number>( BUFFER_SIZE, true );
+            _position     = 0.0;
+            _stepPosition = 0;
 
             _sound = new Sound();
         }
 
         /*
-         * clears the currently cached audio buffer
-         * @voice specify a voice index to invalidate for that voice, not passing this argument clears all voices
-         * @invalidateChildren also invalidates all audioEvent caches belonging to the voice's samples
+         * clears a currently cached audio buffer in the Synthesizer class
+         *
+         * @voice              specify a voice index to invalidate for that voice, not passing this argument clears all voices
+         * @invalidateChildren also invalidates all VO audioEvent caches belonging to the voice's samples
+         * @immediateFlush     when true, caches are invalidated on next synthesize cycle rather than
+         *                     on the first step of the sequencer's loop
          */
-        public static function invalidateCache( voice:int = -1, invalidateChildren:Boolean = false ):void
+        public static function invalidateCache( voice:int = -1, invalidateChildren:Boolean = false, immediateFlush:Boolean = false ):void
         {
-            INSTANCE._synthesizer.invalidateCache( voice, invalidateChildren );
+            INSTANCE._synthesizer.invalidateCache( voice, invalidateChildren, immediateFlush );
         }
 
         private function clearBuffer(): void

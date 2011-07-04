@@ -2,8 +2,7 @@ package nl.igorski.lib.audio.generators
 {
     import nl.igorski.lib.audio.core.AudioSequencer;
     import nl.igorski.lib.audio.core.interfaces.IVoice;
-import nl.igorski.lib.audio.helpers.BulkCacher;
-import nl.igorski.lib.audio.model.vo.VOAudioEvent;
+    import nl.igorski.lib.audio.model.vo.VOAudioEvent;
     import nl.igorski.lib.audio.ui.NoteGrid;
 
     public final class Synthesizer implements IVoice
@@ -16,16 +15,16 @@ import nl.igorski.lib.audio.model.vo.VOAudioEvent;
          */
         private var _samples        :Vector.<Vector.<VOAudioEvent>>;
         private var _cachedVoices   :Vector.<AudioCache>;
-        private var _invalidate     :Vector.<int>;
+        private var _invalidate     :Vector.<Object>;
 
         public var caching          :Boolean;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
-        public function Synthesizer( gridAmount:int = 1 ):void
+        public function Synthesizer( voiceAmount:int = 1 ):void
         {
             // create a sample Vector for each instrument / sequencer grid
-            _samples = new Vector.<Vector.<VOAudioEvent>>( gridAmount, true );
+            _samples = new Vector.<Vector.<VOAudioEvent>>( voiceAmount, true );
             
             for ( var i:int = 0; i < _samples.length; ++i )
                 _samples[i] = new Vector.<VOAudioEvent>();
@@ -44,20 +43,27 @@ import nl.igorski.lib.audio.model.vo.VOAudioEvent;
          * the addEvent function creates a sample object ( an audio "event" ) and pushes this into the _samples Vector
          * to be processed by the synthesize function, which will write it as audio in the buffer
          */
-        public function addEvent( vo:VOAudioEvent, gridNum:int ):void
+        public function addEvent( vo:VOAudioEvent, voiceNum:int ):void
         {
-            // we look if we're not attempting to push a still-caching VO into the samples list
+            // don't add event to samples Vector if voice's cache is valid
+            // ( no need to re-synthesize unless you want to unnecessarily hog CPU cycles )
+            if ( _cachedVoices != null ) {
+                if ( _cachedVoices[ voiceNum ].valid ) {
+                    return;
+                }
+            }
+
+            // we look if we're not attempting to push a ( still-caching ) VO into the samples list
             // to prevent double entries occurring and clogging up the list
 
             var found:Boolean = false;
-
-            for each( var oVo:VOAudioEvent in _samples[ gridNum ])
+            for each( var oVo:VOAudioEvent in _samples[ voiceNum ])
             {
                 if ( oVo.id == vo.id )
                     found = true;
             }
             if ( !found )
-                _samples[ gridNum ].push( vo );
+                _samples[ voiceNum ].push( vo );
         }
         
         /**
@@ -70,10 +76,6 @@ import nl.igorski.lib.audio.model.vo.VOAudioEvent;
          */
         public function synthesize( buffer:Vector.<Vector.<Number>> ):void
         {
-            // don't do anything if the BulkCacher is crunching
-            if ( BulkCacher.isCaching )
-                return;
-
             var audioBuffer:Vector.<Vector.<Number>>;
 
             for( var i:int = 0; i < _samples.length; ++i )
@@ -83,7 +85,7 @@ import nl.igorski.lib.audio.model.vo.VOAudioEvent;
                     clearCache( i );
 
                 if ( _cachedVoices[i] == null )
-                    _cachedVoices[i] = new AudioCache( 65536/*AudioSequencer.BYTES_PER_BAR*/, false );
+                    _cachedVoices[i] = new AudioCache( AudioSequencer.BYTES_PER_BAR, false );
 
                 var doCache:Boolean = AudioSequencer.getVoice(i).active;
 
@@ -95,8 +97,6 @@ import nl.igorski.lib.audio.model.vo.VOAudioEvent;
                 {
                     audioBuffer = BufferGenerator.generate();
 
-                    // trace( "amount to cache for " + i + " => " + _samples[i].length );
-
                     for ( var j:int = _samples[i].length - 1; j >= 0; --j )
                     {
                         var vo:VOAudioEvent = _samples[i][j];
@@ -107,12 +107,13 @@ import nl.igorski.lib.audio.model.vo.VOAudioEvent;
                             // write sample's buffer to voice cache if it's full
                             if ( vo.sample != null && vo.sample.valid )
                             {
-                                BufferGenerator.mix( audioBuffer, vo.sample.read(), 0, 1 / _samples[i].length );
+                                BufferGenerator.mix( audioBuffer, vo.sample.read(), 0/*, 1 / _samples[i].length*/ );
 
                                 // splice event after read has completed full cycle, write in voice's cache
                                 if ( vo.sample.readPointer == 0 ) {
                                     _samples[i].splice( j, 1 );
-                                    _cachedVoices[i].write( audioBuffer, vo.delta * AudioSequencer.BUFFER_SIZE );
+                                    _cachedVoices[i].write( vo.sample.read( 0, vo.sample.length ),
+                                                            vo.delta * AudioSequencer.BYTES_PER_TICK );
                                 }
                             }
                             // sample's buffer not full ? start it's caching ( when it's idle )
@@ -121,17 +122,21 @@ import nl.igorski.lib.audio.model.vo.VOAudioEvent;
                                     vo.cache();
                             }
                         }
-                        // TODO: maybe not, keep handleTick(); addition of samples , but why again??
-                        // all samples cleared ? cache buffer for voice is valid
-                        //if ( _samples[i].length == 0 )
-                          //  _cached[i].valid = true;
+                    }
+                    // all voice samples cleared ? if we're on the final step of the
+                    // sequencer's loop and the current voice isn't queued for invalidation,
+                    // the cache buffer for voice is set as valid
+                    if ( _samples[i].length == 0 && AudioSequencer.stepPosition == 15
+                            && getInvalidationDataForVoice( i ) == null ) {
+                        _cachedVoices[i].valid = true;
                     }
                 }
                 /*
-                 * current voice is cached, read cache into buffer
+                 * current voice has all it's samples cached, read
+                 * from straight from cache into output buffer
                  */
-                else {
-                    trace( "cached voice " + i + " => valid" );
+                else
+                {
                     if ( caching )
                         caching = false;
 
@@ -139,7 +144,7 @@ import nl.igorski.lib.audio.model.vo.VOAudioEvent;
                 }
                 /*
                  * audioBuffer filled ?
-                 * write it into the current streaming SampleDataEvent
+                 * write it into the currently streaming SampleDataEvent
                  * this is what creates the actual output into the AudioSequencer
                  */
                 for ( var bi:int = 0, bl:int = audioBuffer[0].length; bi < bl; ++bi )
@@ -152,36 +157,42 @@ import nl.igorski.lib.audio.model.vo.VOAudioEvent;
                 }
                 audioBuffer = null;
             }
-            if ( _invalidate != null )
-                _invalidate = null;
         }
         
         /*
-         * invalidate cache(s), called when a grid's
-         * content has changed or a new song is loaded
+         * invalidate cache(s), called when a grid's content has changed
+         * ( notes added / deleted ) or a new song has been loaded
+         *
+         * @aVoice             int index of the voice in the AudioSequencer
+         * @invalidateChildren invalidate all voice's VO's ( when voice properties have changed
+         *                     such as envelopes and inserts )
+         * @immediateFlush     Boolean whether to flush ( actual invalidation ) on first sequencer step
+         *                    ( when false ) or to flush on next synthesize cycle ( when true )
          */
-        public function invalidateCache( voice:int = -1, invalidateChildren:Boolean = false ):void
+        public function invalidateCache( aVoice:int = -1, invalidateChildren:Boolean = false, immediateFlush:Boolean = false ):void
         {
             // we keep track of the caches to invalidate in the _invalidate Vector
             // we actually clear them when the synthesize function restarts
             // to prevent reading from cleared buffers while synthesizing!
             
             if ( _invalidate == null )
-                _invalidate = new Vector.<int>();
+                _invalidate = new Vector.<Object>();
             
             // voice index specified ? invalidate only for that voice
-            if ( voice > -1 )
+            if ( aVoice > -1 )
             {
-                _invalidate.push( voice );
-                if ( invalidateChildren )
-                    invalidateCachedAudioEvents( voice );
+                // unless it's already queued for invalidation
+                if (  getInvalidationDataForVoice( aVoice ) == null )
+                {
+                    _invalidate.push({ voice: aVoice, immediate: immediateFlush, children: invalidateChildren });
+                }
             }
             // no specific voice number ? invalidate all
             else {
                 for ( var i:int = 0; i < _samples.length; ++i )
                 {
-                    _invalidate.push( i );
-                    invalidateCachedAudioEvents( i );
+                    if ( getInvalidationDataForVoice( i ) == null )
+                        _invalidate.push({ voice: i, children: invalidateChildren });
                 }
             }
             caching = true;
@@ -198,19 +209,63 @@ import nl.igorski.lib.audio.model.vo.VOAudioEvent;
 
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S
-        
+
+        /*
+         * quick lookup if current voice is queued in the invalidation Vector
+         * returns Object w/ invalidation properties when true, returns null
+         * when not in invalidation Vector
+         */
+        private function getInvalidationDataForVoice( voice:int ):Object
+        {
+            if ( _invalidate == null )
+                return null;
+
+            var output  :Object;
+
+            for ( var i:int = 0; i < _invalidate.length; ++i )
+            {
+                output = _invalidate[i];
+                if ( output.voice == voice ) {
+                    output.index = i;
+                    return output;
+                }
+            }
+            return null;
+        }
+        /*
+         * actual invalidation of cache and clearing of cached buffers
+         * called by synthesize method
+         */
         private function clearCache( voice:int ):void
         {
-            if ( _invalidate.indexOf( voice ) > -1 )
+            var invalidation:Object = getInvalidationDataForVoice( voice );
+
+            if ( invalidation == null )
+                return;
+
+            // queried voice is to be invalidated
+            // perform validation either when immediate flush has been requested
+            // or when the sequencer's loop position is at the first step
+            if ( invalidation.immediate || AudioSequencer.stepPosition == 0 )
             {
                 if ( _cachedVoices[ voice ] != null )
                 {
                     _cachedVoices[ voice ].destroy();
                     _cachedVoices[ voice ] = null;
-                    //trace( "cleared cache " + voice );
                 }
+                // sequencer's first position ? remove voice from invalidation array
+                if ( !invalidation.immediate )
+                {
+                    _invalidate.splice( invalidation.index, 1 );
+                } else {
+                    // immediate flush ? keep voice in invalidation array for
+                    // sequencer's next pass on start of loop
+                    invalidation.immediate = false;
+                }
+                caching = true;
             }
-            caching = true;
+            if ( invalidation.children )
+                invalidateCachedAudioEvents( invalidation.index );
         }
 
         /*
@@ -220,6 +275,7 @@ import nl.igorski.lib.audio.model.vo.VOAudioEvent;
         private function invalidateCachedAudioEvents( num:int ):void
         {
             var grid:NoteGrid = AudioSequencer.retrieveNoteGrid( num );
+
             if ( grid != null )
                 grid.resetNotes();
         }

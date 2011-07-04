@@ -191,7 +191,7 @@ package nl.igorski.lib.audio.ui
             
             with ( bg.graphics )
             {
-                beginFill( _color, 1 );
+                beginFill( _color );
                 drawRect( 0, 0, WIDTH, WIDTH );
                 endFill();
             }
@@ -245,6 +245,20 @@ package nl.igorski.lib.audio.ui
         //_________________________________________________________________________________________________________
         //                                                                        P R O T E C T E D   M E T H O D S
 
+        protected function correctPos( pos:int ):int
+        {
+            // sixteen step sequencer context
+            var maxWidth:int = ( 15 - _index ) * ( WIDTH + 4 );
+
+            if ( pos > maxWidth )
+                pos = maxWidth;
+
+            if ( pos < 0 )
+                pos = 0;
+
+            return pos;
+        }
+
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S
 
@@ -266,14 +280,11 @@ package nl.igorski.lib.audio.ui
         {
             var pos:int = e.stageX - ( this as DisplayObject ).localToGlobal(new Point()).x;
 
-            if ( pos < 0 )
-                pos = 0;
-
             with ( icon.graphics )
             {
                 clear();
                 beginFill( 0xFFFFFF, 1 );
-                drawRoundRect( WIDTH * .5 - ICON_SIZE * .5, WIDTH * .5 - ICON_SIZE * .5, pos, ICON_SIZE, 5 );
+                drawRoundRect( WIDTH * .5 - ICON_SIZE * .5, WIDTH * .5 - ICON_SIZE * .5, correctPos( pos ), ICON_SIZE, 5 );
                 endFill();
             }
         }

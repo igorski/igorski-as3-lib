@@ -10,6 +10,7 @@ package nl.igorski.lib.audio.ui
     import nl.igorski.lib.audio.core.GridManager;
     import nl.igorski.lib.audio.core.events.GridEvent;
     import nl.igorski.lib.audio.definitions.Pitch;
+    import nl.igorski.lib.audio.helpers.BulkCacher;
     import nl.igorski.lib.audio.model.vo.VOAudioEvent;
 
     public class NoteGrid extends Sprite
@@ -27,12 +28,12 @@ package nl.igorski.lib.audio.ui
         protected var frequencies   :Vector.<Dictionary>;
 
         public var blockMargin      :int = NoteGridBlock.WIDTH + 3;
-        public var _octaves         :int = 8;
-        public var _curOctave       :int = 3;
-        public var tf               :*;
+        protected var _octaves      :int = 8;
+        protected var _curOctave    :int = 3;
+        protected var tf            :*;
 
-        public var up               :Sprite;
-        public var down             :Sprite;
+        protected var up            :Sprite;
+        protected var down          :Sprite;
         public var onScreen         :Boolean = true;
 
         protected var _container    :Sprite;
@@ -60,14 +61,14 @@ package nl.igorski.lib.audio.ui
         //                                                                                              P U B L I C
 
          /**
-         * gets frequencies at current sequencer position
-         *
-         * @return
+         * gets frequencies at current sequencer position, also updates the pointer position
+         * as this method is called during a step-change in the sequencer
          */
         public function getFrequencies( position:int ):Dictionary
         {
             if ( onScreen )
                 updatePointerPosition( position );
+
             return frequencies[ position ];
         }
 
@@ -160,9 +161,9 @@ package nl.igorski.lib.audio.ui
 
             frequencies[ position ][ frequency ] = vo;
 
-            // flush the cache for this grid ( only if this object is autocaching )
+            // immediately flush the cache for this grid ( only if this object is autocaching )
             if ( autoCache )
-                AudioSequencer.invalidateCache( _voice );
+                AudioSequencer.invalidateCache( _voice, false, true );
         }
         
         /**
@@ -178,12 +179,12 @@ package nl.igorski.lib.audio.ui
                 vo = null;
                 delete frequencies[ position ][ frequency ];
             }
-            // flush the cache for this grid
-            AudioSequencer.invalidateCache( _voice );
+            // immediately flush the cache for this grid
+            AudioSequencer.invalidateCache( _voice, false, true );
         }
 
         /**
-         * clears and rebuilds the current cache, called
+         * clears and rebuilds the current cache ( using the BulkCacher ), called
          * when a grid's attached voice changes properties
          */
         public function resetNotes():void
@@ -196,10 +197,12 @@ package nl.igorski.lib.audio.ui
                     {
                         vo.sample.destroy();
                         vo.sample = null;
-                        vo.cache();
+                        BulkCacher.addEvent( vo );
                     }
                 }
             }
+            if ( !BulkCacher.isCaching )
+                BulkCacher.cache();
         }
 
         //_________________________________________________________________________________________________________
@@ -315,11 +318,11 @@ package nl.igorski.lib.audio.ui
             down = new Sprite();
 
             up.graphics.beginFill( 0xFF0000, 1 );
-            up.graphics.drawCircle( 470, _container.y + 10, 10 );
+            up.graphics.drawCircle( 465, _container.y + 10, 10 );
             up.graphics.endFill();
 
             down.graphics.beginFill( 0xFF0000, 1 );
-            down.graphics.drawCircle( 470, 320, 10 );
+            down.graphics.drawCircle( 465, 320, 10 );
             down.graphics.endFill();
 
             down.buttonMode =

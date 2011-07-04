@@ -4,13 +4,13 @@ package nl.igorski.lib.ui.forms
     import flash.events.MouseEvent;
     import nl.igorski.lib.ui.forms.base.BaseForm;
     import nl.igorski.lib.View;
-import nl.igorski.lib.ui.forms.components.Checkbox;
-import nl.igorski.lib.ui.forms.components.Divider;
-import nl.igorski.lib.ui.forms.components.FormText;
-import nl.igorski.lib.ui.forms.components.Input;
+    import nl.igorski.lib.ui.forms.components.Checkbox;
+    import nl.igorski.lib.ui.forms.components.Divider;
+    import nl.igorski.lib.ui.forms.components.FormText;
+    import nl.igorski.lib.ui.forms.components.Input;
     import nl.igorski.lib.ui.forms.components.RadioGroup;
-import nl.igorski.lib.ui.forms.components.Select;
-import nl.igorski.lib.ui.forms.components.SubmitButton;
+    import nl.igorski.lib.ui.forms.components.Select;
+    import nl.igorski.lib.ui.forms.components.SubmitButton;
     import nl.igorski.lib.ui.forms.components.TextArea;
 
     /**
@@ -56,7 +56,7 @@ import nl.igorski.lib.ui.forms.components.SubmitButton;
                     },
                     { type: TextArea,     name: "message", label: "Your message:" },
                     { type: Divider,      width: 400 },
-                    { type: FormText,     label: "Would you like to subscribe to our newsletter?:" },
+                    { type: FormText,     text: "Would you like to subscribe to our newsletter?:" },
                     { type: Checkbox,     label: "Yes, keep me updated" },
                     { type: SubmitButton, label: "Submit" }
                    ];

@@ -4,7 +4,6 @@
     import flash.display.Sprite;
     import flash.events.Event;
 
-    import nl.igorski.lib.ui.components.StdTextField;
     /**
      * FeedbackWindow is triggered on validation errors to
      * display these errors ( received from your backend )
@@ -13,27 +12,26 @@
      */
     public class FeedbackWindow extends Sprite
     {
-        public static const CLOSE	:String = "FeedbackWindow::CLOSE";
+        public static const CLOSE   :String = "FeedbackWindow::CLOSE";
 
-        private var text			:StdTextField;
-        private var bg				:Sprite;
-        private var close			:CloseButton;
+        private var text            :StdTextField;
+        private var bg              :Sprite;
+        private var close           :CloseButton;
 
-        private var _width			:int;
-        private var margin			:int = 10;
+        private var margin          :int = 10;
 
-        private var doClose			:Boolean;
+        private var _doClose        :Boolean;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function FeedbackWindow( inWidth:int = 250, inClose:Boolean = true, inFont:String = Fonts.FEEDBACK )
+        public function FeedbackWindow( width:int = 250, doClose:Boolean = true, font:String = Fonts.FEEDBACK )
         {
-            text = new StdTextField( inFont );
-            text.width = inWidth;
-            doClose = inClose;
+            text        = new StdTextField( font );
+            text.width  = width;
+            _doClose    = doClose;
 
-            text.multiline = text.wordWrap = true;
+            text.multiline  = text.wordWrap = true;
             text.x = text.y = margin;
 
             close = new CloseButton();
@@ -48,7 +46,6 @@
             text.text = inText;
 
             draw();
-
             mouseEnabled = mouseChildren = true;
         }
 
@@ -59,6 +56,18 @@
             mouseChildren = false;
 
             doHide();
+        }
+
+        public function destroy():void
+        {
+            close.removeEventListener( CloseButton.CLICK, handleClose );
+
+            while( numChildren > 0 )
+            {
+                var o:* = getChildAt( 0 );
+                removeChildAt( 0 );
+                o = null;
+            }
         }
 
         //_________________________________________________________________________________________________________
@@ -99,8 +108,10 @@
 
             if ( !contains( bg ))
                 addChild( bg );
-            if ( !contains( close ) && doClose )
+
+            if ( !contains( close ) && _doClose )
                 addChild( close );
+
             if ( !contains( text ))
                 addChild( text );
         }
