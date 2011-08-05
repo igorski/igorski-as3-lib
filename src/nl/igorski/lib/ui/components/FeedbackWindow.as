@@ -1,10 +1,11 @@
 ﻿package nl.igorski.lib.ui.components
 {
-    import nl.igorski.lib.definitions.Fonts;
     import flash.display.Sprite;
     import flash.events.Event;
 
-    /**
+import nl.igorski.lib.definitions.Fonts;
+
+/**
      * FeedbackWindow is triggered on validation errors to
      * display these errors ( received from your backend )
      * ...
@@ -25,8 +26,11 @@
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function FeedbackWindow( width:int = 250, doClose:Boolean = true, font:String = Fonts.FEEDBACK )
+        public function FeedbackWindow( width:int = 250, doClose:Boolean = true, font:String = null )
         {
+            if ( font == null )
+                font = Fonts.FEEDBACK;
+
             text        = new StdTextField( font );
             text.width  = width;
             _doClose    = doClose;
@@ -76,12 +80,12 @@
         //_________________________________________________________________________________________________________
         //                                                                              E V E N T   H A N D L E R S
 
-        private function handleClose( e:Event ):void
+        protected function handleClose( e:Event ):void
         {
             hide();
         }
 
-        private function doHide():void
+        protected function doHide():void
         {
             dispatchEvent( new Event( CLOSE ));
         }

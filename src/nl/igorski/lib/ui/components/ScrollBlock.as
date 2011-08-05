@@ -1,5 +1,6 @@
 ﻿package nl.igorski.lib.ui.components
 {
+    import flash.display.DisplayObject;
     import flash.display.DisplayObjectContainer;
     import flash.display.Sprite;
     import flash.events.Event;
@@ -15,25 +16,25 @@
      */
     public class ScrollBlock extends Sprite
     {
-        private var obj				:*; // (display)object to scroll
+        private var scrollContent   :DisplayObject;
 
-        private var _width			:int;
-        private var _height			:int;
+        private var _width          :int;
+        private var _height         :int;
 
-        protected var background	:Sprite;
-        protected var maskmc		:Sprite;
-        private var ruler			:Sprite;
-        private var minY			:Number;
-        private var maxY			:Number;
-        private var contentstarty	:Number;
-        private var percentuale		:Number;
-        private var margin			:Number = 10;
+        protected var background    :Sprite;
+        protected var maskmc        :Sprite;
+        private var ruler           :Sprite;
+        private var minY            :Number;
+        private var maxY            :Number;
+        private var contentstarty   :Number;
+        private var percentuale     :Number;
+        private var margin          :Number = 10;
 
-        private var _scrollPosition	:int;
-        private var _alwaysScroll	:Boolean;
+        private var _scrollPosition :int;
+        private var _alwaysScroll   :Boolean;
 
         /*
-         * inObj            a DisplayObject container holding the content to be masked and scrolled
+         * inScrollContent  a DisplayObject container holding the content to be masked and scrolled
          * inWidth          maximum width this object may occupy
          * inHeight         maximum height this object may occopy
          * inScrollPosition x-position of the scrollbar ( 0 defaults to right side of content ) in pixels
@@ -43,9 +44,9 @@
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function ScrollBlock( inObj:*, inWidth:int = 100, inHeight:int = 100, inScrollPosition:int = 0, inAlwaysScroll:Boolean = false )
+        public function ScrollBlock( inScrollContent:DisplayObject, inWidth:int = 100, inHeight:int = 100, inScrollPosition:int = 0, inAlwaysScroll:Boolean = false )
         {
-            obj             = inObj;
+            scrollContent   = inScrollContent;
             _width          = inWidth;
             _height         = inHeight;
             _scrollPosition = inScrollPosition;
@@ -66,50 +67,61 @@
             percentuale = ( 100 / maxY ) * ruler.y;
 
             upY = 0;
-            downY = obj.height - ( maskmc.height * .5 ) + 20;
+            downY = scrollContent.height - ( maskmc.height * .5 ) + 20;
 
             checkContentLength();
 
-            var fx:Number = contentstarty - ((( downY - ( maskmc.height * .5 )) * .01 ) * percentuale );
+            var endPosition     :Number = contentstarty - ((( downY - ( maskmc.height * .5 )) * .01 ) * percentuale );
+            var currentPosition :Number = scrollContent.y;
 
-            var curry:Number = obj.y;
-            var finalx:Number = fx;
-
-            if ( curry != finalx )
+            if ( currentPosition != endPosition )
             {
-                var diff:Number = finalx-curry;
-                curry += diff / 4;
+                var diff:Number = endPosition - currentPosition;
+                currentPosition += diff / 4;
             }
-            obj.y = curry;
+            scrollContent.y = currentPosition;
         }
 
         public function checkContentLength():void
         {
-            if ( obj.height < maskmc.height )
+            ruler.visible = ( scrollContent.height >= maskmc.height );
+        }
+
+        /*
+         * reset the scroller ( when changing content length, for instance )
+         *
+         * @param aScrollContent optional new scroll content that should replace
+         *        the current content
+         */
+        public function reset( aScrollContent:* = null ):void
+        {
+            scrollContent.y   = 0;
+            ruler.y           = 0;
+
+            if ( aScrollContent != null )
             {
-                ruler.visible = false;
+                if ( contains( scrollContent ))
+                    removeChild( scrollContent );
+
+                scrollContent = aScrollContent;
+                initUI();
+
             } else {
-                ruler.visible = true;
+                checkScroll();
             }
         }
 
-        public function reset( inObj:* = null ):void
-        {
-            obj.y = 0;
-            ruler.y = 0;
-            if ( inObj != null )
-            {
-                if (contains(obj)) removeChild(obj);
-                obj = inObj;
-                initUI();
-            }
-            checkScroll();
-        }
+        /*
+         * scrollTo can be called when a specific displayObject
+         * ( within the scrollContent container ) should be visible
+         * on-screen
+         *
+         * @param inObj, a DisplayObject within the scrollContent container */
 
         public function scrollTo( inObj:* ):void
         {
             handleRelease();
-            obj.y = -inObj.y;
+            scrollContent.y = -inObj.y;
         }
 
         public function showRuler():void
@@ -147,6 +159,40 @@
             }
         }
 
+        /**
+         * if you update the dimensions of your scroller's container, you may
+         * wish to adjust the scroller's dimensions, you can adjust them
+         * without creating a new scroller
+         * @param aWidth  the preferred width, leave empty ( -1 ) to keep current width
+         * @param aHeight the preferred height, leave empty ( -1 ) to keep current height
+         */
+        public function updateDimensions( aWidth:int = -1, aHeight:int = -1 ):void
+        {
+            var oldHeight:Number = _height;
+
+            if ( aWidth > -1 )
+                _width = aWidth;
+
+            if ( aHeight > -1 )
+                _height = aHeight;
+
+            if ( contains( background ))
+                removeChild( background );
+
+            background = null;
+
+            scrollContent.mask = null;
+
+            if ( contains( maskmc ))
+                removeChild( maskmc );
+
+            maskmc = null;
+
+            scrollContent.y = scrollContent.y / oldHeight * _height;
+
+            initUI();
+        }
+
         //_________________________________________________________________________________________________________
         //                                                                            G E T T E R S / S E T T E R S
 
@@ -155,15 +201,15 @@
 
         private function initUI( e:Event = null ):void
         {
-            removeEventListener( Event.ADDED_TO_STAGE, initUI );
+            if ( hasEventListener( Event.ADDED_TO_STAGE ))
+                removeEventListener( Event.ADDED_TO_STAGE, initUI );
 
-            if ( !contains( obj ))
-                addChild( obj );
+            if ( !contains( scrollContent ))
+                addChild( scrollContent );
 
-            background = new Sprite();
-
-            if ( background.numChildren == 0 )
+            if ( background == null )
             {
+                background = new Sprite();
                 background.addChild( new ScrollTrack( _height ) );
                 addChild( background );
             }
@@ -171,9 +217,9 @@
             draw();
 
             minY = background.y;
-            maxY = background.y + background.height - ruler.height;
+            maxY = background.y + ( background.height - ruler.height );
 
-            contentstarty = obj.y;
+            contentstarty = scrollContent.y;
 
             minY = 0;
             maxY = background.height - ruler.height;
@@ -183,7 +229,7 @@
 
         protected function handleClick( e:MouseEvent ):void
         {
-            var rect:Rectangle = new Rectangle( background.x - ( ruler.width * .5 ) + 3, minY, 0, maxY );
+            var rect:Rectangle = new Rectangle( background.x, minY, 0, maxY );
             ruler.startDrag( false, rect );
             stage.addEventListener( MouseEvent.MOUSE_UP, handleRelease, false, 0, true );
         }
@@ -205,6 +251,7 @@
         {
             handleRelease();
 
+            // prevent getting stuck to the limits...
             if ( ruler.y == 0 )
                 ruler.y = 1;
 
@@ -212,8 +259,10 @@
             {
                 var targetY:Number = ruler.y - ( e.delta * 3 );
 
-                if ( targetY > maxY || targetY < 0 )
-                    return;
+                if ( targetY > maxY )
+                    targetY = maxY;
+                else if ( targetY < minY )
+                    targetY = minY;
 
                 ruler.y = targetY;
             }
@@ -222,48 +271,55 @@
         //_________________________________________________________________________________________________________
         //                                                                        P R O T E C T E D   M E T H O D S
 
-        // override in subclass for custom skinning
+        /*
+         * override in subclass for custom skinning
+         * note we are checking whether objects exist as the
+         * draw method runs when the inner content resets */
+
         protected function draw():void
         {
-            maskmc = new Sprite();
-
-            if ( !contains( maskmc ))
+            if ( maskmc == null )
             {
+                maskmc = new Sprite();
+
                 maskmc.graphics.beginFill( 0xFFFFFF, 1 );
                 maskmc.graphics.drawRect( 0, 0, _width, _height );
                 maskmc.graphics.endFill();
-                maskmc.x = obj.x;
+                maskmc.x = scrollContent.x;
                 addChild( maskmc );
             }
-            obj.mask = maskmc;
+            scrollContent.mask = maskmc;
 
-            ruler = new Sprite();
-
-            if ( !contains( ruler ))
+            if ( ruler == null )
             {
+                ruler = new Sprite();
                 ruler.addChild( new ScrollHandle());
                 ruler.buttonMode = true;
                 ruler.tabEnabled = false;
-                addChild( ruler );
             }
+
             if ( _scrollPosition == 0 )
             {
+                ruler.x      =
                 background.x = _width + ( margin * 4 );
-                ruler.x = background.x - ( ruler.width * .5 ) + 3;
             }
             else
             {
-                ruler.x = background.x = _scrollPosition;
+                ruler.x      =
+                background.x = _scrollPosition;
             }
         }
 
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S
 
+        /*
+         * checks whether the scrollbar is actually needed
+         * to display the current content in the set window dimensions
+         */
         private function checkScroll():void
         {
-            // is scrollbar actually required ?
-            if ( obj.height >= maskmc.height )
+            if ( scrollContent.height >= maskmc.height )
             {
                 ruler.addEventListener( MouseEvent.MOUSE_DOWN, handleClick, false, 0, true );
             //	ruler.addEventListener( MouseEvent.MOUSE_OUT, releaseHandle );
@@ -273,33 +329,28 @@
                     stage.addEventListener( MouseEvent.MOUSE_WHEEL, handleWheel, false, 0, true );
                 else
                     addEventListener( MouseEvent.MOUSE_WHEEL, handleWheel, false, 0, true );
+
+                showRuler();
+
             } else {
-                hideScroller();
+
+                ruler.removeEventListener( MouseEvent.MOUSE_DOWN, handleClick );
+                removeEventListener( MouseEvent.MOUSE_UP, handleRelease );
+                removeEventListener( Event.ENTER_FRAME, handleEnterFrame );
+
+                if ( _alwaysScroll )
+                    stage.removeEventListener( MouseEvent.MOUSE_WHEEL, handleWheel );
+                else
+                    removeEventListener( MouseEvent.MOUSE_WHEEL, handleWheel );
+
+                hideRuler();
             }
-        }
-
-        private function hideScroller():void
-        {
-            if ( contains( ruler ))
-                removeChild( ruler );
-            
-            if ( contains( background ))
-                removeChild( background );
-            
-            ruler.removeEventListener( MouseEvent.MOUSE_DOWN, handleClick );
-            removeEventListener( MouseEvent.MOUSE_UP, handleRelease );
-            removeEventListener( Event.ENTER_FRAME, handleEnterFrame );
-
-            if ( _alwaysScroll )
-                stage.removeEventListener( MouseEvent.MOUSE_WHEEL, handleWheel );
-            else
-                removeEventListener( MouseEvent.MOUSE_WHEEL, handleWheel );
         }
 
         private function scrollData( q:int ):void
         {
-            var d:Number;
-            var rulerY:Number;
+            var d       :Number;
+            var rulerY  :Number;
 
             d = -q * 10;
 

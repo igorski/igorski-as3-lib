@@ -2,9 +2,14 @@
 {
     import flash.display.Bitmap;
     import flash.display.BitmapData;
+    import flash.display.DisplayObject;
     import flash.display.Sprite;
     import flash.events.Event;
     import flash.events.MouseEvent;
+    import flash.geom.Point;
+    import flash.utils.clearInterval;
+    import flash.utils.setInterval;
+
     import nl.igorski.lib.ui.components.ScrollBlock;
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
 
@@ -16,22 +21,28 @@
      */
     public class Select extends Sprite implements IFormElement
     {
-        protected var arrowUp   :Sprite;
-        protected var arrowDown :Sprite;
+        public static const CHANGE      :String = "Select::CHANGE";
 
-        protected var _title    :String;
-        protected var _options  :Array;
-        protected var _elements :Array;
+        protected var arrowUp           :Sprite;
+        protected var arrowDown         :Sprite;
 
-        protected var _width    :int;
-        protected var _height   :int;
-        protected var toggle    :Sprite;
-        private var opened      :Boolean = false;
+        protected var _title            :String;
+        protected var _options          :Array;
+        protected var _elements         :Array;
 
-        protected var _mask     :Sprite;
-        protected var bg        :Sprite;
-        protected var container :ScrollBlock;
-        private var current     :Bitmap;
+        protected var _width            :int;
+        protected var _height           :int;
+        protected var toggle            :Sprite;
+        private var opened              :Boolean = false;
+
+        protected var _mask             :Sprite;
+        protected var bg                :Sprite;
+        protected var container         :ScrollBlock;
+        private var current             :Bitmap;
+
+        protected var _closeTimer       :uint;
+        protected const CLOSE_TIMEOUT   :int = 2500;
+
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
@@ -69,13 +80,24 @@
                 if ( b.checked )
                     return b.val;
             }
-            return '';
+            return "";
         }
 
         public function set val( value:* ):void
         {
             for each( var b:SelectOption in _elements )
+            {
                 b.checked = ( b.val == value );
+
+                if ( b.checked ) {
+                    cloneSelection( b );
+
+                    if (( _options.length * b.height ) > _height )
+                        container.scrollTo( b );
+
+                    break;
+                }
+            }
         }
 
         override public function set tabIndex( value:int ):void
@@ -113,8 +135,11 @@
             curButton.activate();
             cloneSelection( curButton );
 
-            container.scrollTo( curButton );
+            if (( _options.length * curButton.height ) > _height )
+                container.scrollTo( curButton );
+
             hideList();
+            dispatchEvent( new Event( CHANGE ));
         }
 
         private function cloneSelection( b:SelectOption ):void
@@ -157,6 +182,8 @@
         {
             opened = false;
 
+            clearInterval( _closeTimer );
+
             if ( container != null )
                 container.mask = _mask;
 
@@ -175,6 +202,20 @@
             container.alpha = 0;
             arrowDown.alpha = 1;
             arrowUp.alpha   = 0;
+        }
+
+        private function handleInterval():void
+        {
+            var thisX:int = ( this as DisplayObject ).localToGlobal( new Point()).x;
+            var thisY:int = ( this as DisplayObject ).localToGlobal( new Point()).y;
+
+            if ( stage.mouseX >= thisX && stage.mouseX <= thisX + width
+                && stage.mouseY >= thisY && stage.mouseY <= thisY + height ) {
+                // nothing... ( cursor is in bounds of select )
+            } else {
+                // cursor out bounds, close selectbox
+                hideList();
+            }
         }
 
         //_________________________________________________________________________________________________________
@@ -231,7 +272,7 @@
         {
             var count   :int = 0;
             var margin  :int = 20;
-            _elements         = [];
+            _elements        = [];
 
             var window:Sprite = new Sprite();
 
@@ -246,11 +287,15 @@
                 ++count;
             }
 
+            // no need for a large container if we only have a few options...
+            if (( input.y + input.height + margin ) < _height )
+                _height = input.y + input.height + margin;
+
             container = new ScrollBlock( window, _width - 20, _height, 0, true );
             // container.addEventListener( MouseEvent.ROLL_OUT, hideList );
             container.mask = _mask;
             container.alpha = 0;
-            addChild(container);
+            addChild( container );
 
             if (_elements.length > 0) {
                 _elements[0].activate();
@@ -275,7 +320,7 @@
                 container = null;
             }
 
-            for each(var b:SelectOption in _elements)
+            for each( var b:SelectOption in _elements )
             {
                 if ( b != null ) {
                     b.removeEventListener( SelectOption.SELECTED, handleOptionSelect );
@@ -284,7 +329,7 @@
             }
 
             if ( current != null ) {
-                if (contains( current ))
+                if ( contains( current ))
                     removeChild( current );
             }
             _elements = null;
@@ -313,6 +358,8 @@
             container.alpha = 1;
             arrowDown.alpha = 0;
             arrowUp.alpha   = 1;
+
+            _closeTimer = setInterval( handleInterval, CLOSE_TIMEOUT );
         }
 
         //_________________________________________________________________________________________________________

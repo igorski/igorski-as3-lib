@@ -1,9 +1,9 @@
 package nl.igorski.lib.audio.core
 {
     import flash.events.EventDispatcher;
-    import nl.igorski.lib.audio.core.events.GridEvent;
+    import nl.igorski.lib.audio.core.events.AudioTimelineEvent;
 
-    public class GridManager extends EventDispatcher
+    public class AudioTimelineManager extends EventDispatcher
     {
         /**
          * Created by IntelliJ IDEA.
@@ -11,19 +11,18 @@ package nl.igorski.lib.audio.core
          * Date: 22-dec-2010
          * Time: 10:49:42
          *
-         * GridManager acts as a broadcaster to all grid blocks
-         * to lock / unlock their active states during interaction
-         */
+         * AudioTimelineManager acts as a broadcaster to all audio timelines
+         * to lock / unlock their active states during interaction */
 
-        public static const INSTANCE    :GridManager = new GridManager();
+        public static const INSTANCE    :AudioTimelineManager = new AudioTimelineManager();
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function GridManager()
+        public function AudioTimelineManager()
         {
             if ( INSTANCE != null )
-                throw new Error( "cannot instantiate GridManager" );
+                throw new Error( "cannot instantiate AudioTimelineManager" );
         }
 
         //_________________________________________________________________________________________________________
@@ -31,16 +30,16 @@ package nl.igorski.lib.audio.core
 
         /*
          * @exception index of the grid block that should remain interactive
-         *            during the locked state of the grid
+         *            during the locked state of the timeline
          */
-        public static function lockGrid( exception:int ):void
+        public static function lockTimeline( exception:int ):void
         {
-            INSTANCE.dispatchEvent( new GridEvent( GridEvent.LOCK, exception ));
+            INSTANCE.dispatchEvent( new AudioTimelineEvent( AudioTimelineEvent.LOCK, exception ));
         }
 
-        public static function unlockGrid():void
+        public static function unlockTimeline():void
         {
-            INSTANCE.dispatchEvent( new GridEvent( GridEvent.UNLOCK ));
+            INSTANCE.dispatchEvent( new AudioTimelineEvent( AudioTimelineEvent.UNLOCK ));
         }
 
         //_________________________________________________________________________________________________________

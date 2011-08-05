@@ -72,7 +72,7 @@
 
         public function set checked( value:Boolean ):void
         {
-            _checked = true;
+            _checked = value;
             _checked ? handleRollOver() : handleRollOut();
         }
 
@@ -108,7 +108,7 @@
         protected function handleRollOver( e:MouseEvent = null ):void
         {
             titleFieldHighlight.alpha = 1;
-            titleField.alpha = 0;
+            titleField.alpha          = 0;
         }
 
         protected function handleRollOut( e:MouseEvent = null ):void
@@ -116,7 +116,7 @@
             if ( !checked )
             {
                 titleFieldHighlight.alpha = 0;
-                titleField.alpha = _alpha;
+                titleField.alpha          = _alpha;
             }
         }
 

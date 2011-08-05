@@ -54,7 +54,7 @@ package nl.igorski.lib.ui.components
             _default   = defaultValue;
             _lastValue = defaultValue;
 
-            addEventListener( Event.ADDED_TO_STAGE, init );
+            init();
         }
 
         //_________________________________________________________________________________________________________________
@@ -142,10 +142,8 @@ package nl.igorski.lib.ui.components
         //_________________________________________________________________________________________________________________
         //                                                                                      E V E N T   H A N D L E R S
 
-        private function init( e:Event ):void
+        private function init():void
         {
-            removeEventListener( Event.ADDED_TO_STAGE, init );
-
             draw();
 
             value	= _default;

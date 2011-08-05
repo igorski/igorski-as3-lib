@@ -4,7 +4,7 @@ package nl.igorski.lib.audio.modifiers
     import nl.igorski.lib.audio.core.AudioSequencer;
     import nl.igorski.lib.audio.core.interfaces.IBusModifier;
 
-    public class Delay implements IBusModifier
+    public final class Delay implements IBusModifier
     {
         /**
          * Created by IntelliJ IDEA.
@@ -86,7 +86,7 @@ package nl.igorski.lib.audio.modifiers
         
         public function getData():Object
         {
-            // might as well be OFF - we due this to prevent it from
+            // might as well be OFF - we do this to prevent it from
             // being saved as it's not removed from the sequencer's busModifiers
             if ( mix == 0 && feedback == 0 )
                 return null;

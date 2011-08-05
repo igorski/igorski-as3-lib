@@ -122,6 +122,11 @@
             swapChildren( textField, bg );
         }
 
+        public function setSelection( beginIndex:int, endIndex:int ):void
+        {
+            textField.setSelection( beginIndex, endIndex );
+        }
+
         //_________________________________________________________________________________________________________
         //                                                                            G E T T E R S / S E T T E R S
 
@@ -135,7 +140,7 @@
 
         public function set smalltext( value:Boolean ):void
         {
-            textField.setStyle( Fonts.SMALL_INPUT );
+            textField.setFont( Fonts.SMALL_INPUT );
         }
 
         public function set multiline( value:Boolean ):void
@@ -195,6 +200,11 @@
         {
             _wordwrap          = value;
             textField.wordWrap = value;
+        }
+
+        public function get textLength():int
+        {
+            return textField.text.length;
         }
 
         //_________________________________________________________________________________________________________

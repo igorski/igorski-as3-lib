@@ -2,6 +2,7 @@ package nl.igorski.lib.audio.generators.waveforms.base
 {
     import nl.igorski.lib.audio.core.AudioSequencer;
     import nl.igorski.lib.audio.core.interfaces.IModifier;
+    import nl.igorski.lib.audio.core.interfaces.IModulator;
     import nl.igorski.lib.audio.core.interfaces.IWave;
     import nl.igorski.lib.audio.model.vo.VOEnvelopes;
 
@@ -14,31 +15,40 @@ package nl.igorski.lib.audio.generators.waveforms.base
      * Time: 10:11
      *
      * BaseWaveForm is the base class for all sound wave generating classes
-     * implementing the IWave interface
-     *
-     */
+     * implementing the IWave interface */
+
     public class BaseWaveForm implements IWave
     {
-        protected var DECAY_MULTIPLIER    :int = 200;
+        protected var DECAY_MULTIPLIER          :int = 200;
+        protected var ENVELOPE_MULTIPLIER       :Number = 1 / 20000;
+        protected var DEFAULT_FADE_DURATION     :int = 5;
 
-        protected var _delta              :int;
-        protected var _phase              :Number;
-        protected var _phaseIncr          :Number;
-        protected var _length             :Number;
-        protected var _lengthIncr         :int;
+        protected var _delta                    :int;     // position of this wave in the sequencer
+        protected var _phase                    :Number;  // phase of the wave, creates pitch
+        protected var _phaseIncr                :Number;  // step value for the wave form
+        protected var _frequency                :Number;  // pitch in Hz
+        protected var _length                   :Number;  // length of the wave ( in sequencer steps )
+        protected var _sampleLength             :int;     // length of the wave ( in samples )
 
-        protected var _attack             :Number;
-        protected var _decay              :int;
-        protected var _release            :Number;
+        protected var _attack                   :Number;  // attack time ( 1 = entire sample length )
+        protected var _attackIncr               :Number;  // step value for attack envelope operations ( per sample )
+        protected var _attackEnv                :Number;  // the current value for the attack envelope
+        protected var _decay                    :int;     // decay, creates wave length
+        protected var _release                  :Number;  // release time ( 1 = entire sample length )
+        protected var _releaseStart             :int;     // sample position where the release envelope starts
+        protected var _releaseIncr              :Number;  // step value for release envelope operations ( per sample )
+        protected var _releaseEnv               :Number;  // the current value for the release envelope
 
-        protected var _volumeL            :Number;
-        protected var _volumeR            :Number;
-        protected var _pan                :Number;
-        protected var _bufferSize         :int;
+        protected var _volume                   :Number;  // overall voice volume ( used for retrieval purposes )
+        protected var _volumeL                  :Number;  // volume of left channel ( regulated by pan )
+        protected var _volumeR                  :Number;  // volume of right channel ( regulated by pan )
+        protected var _pan                      :Number;  // pan value ( -1 = left, 0 = center, 1 = right )
+        protected var _bufferSize               :int;     // buffer size, taken from AudioSequencer
 
-        protected var _modifiers          :Vector.<IModifier>;
-
-        protected var _active          :Boolean;
+        protected var _active                   :Boolean;    // whether we should generate audio for this voice
+        protected var _bufferedSamples          :int;        // amount of samples processed by generate();
+        protected var _modifiers                :Vector.<IModifier>;  // list of optional modifiers
+        protected var _modulators               :Vector.<IModulator>; // list of optional modulators
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
@@ -52,17 +62,19 @@ package nl.igorski.lib.audio.generators.waveforms.base
          * @aDelta       position of this wave in the sequencer
          * @aVolume      volume of the generated wave
          * @aPan         position in the stereo field of the generated wave
-         * @aModifiers   Array of modifiers that should process the synthesized audio
          */
-        public function BaseWaveForm( aFrequency:Number, aLength:Number, aDecayTime:int, aAttackTime:Number, aReleaseTime:Number, aDelta:int, aVolume:Number, aPan:Number, aModifiers:Array ):void
+        public function BaseWaveForm( aFrequency:Number, aLength:Number, aDecayTime:int, aAttackTime:Number, aReleaseTime:Number, aDelta:int, aVolume:Number, aPan:Number ):void
         {
-            _delta          = aDelta;
-            decay           = aDecayTime;
-            _attack         = isNaN( aAttackTime ) ? 1 : aAttackTime;
             _length         = isNaN( aLength ) ? 1 : aLength;
+            _sampleLength   = _length * AudioSequencer.BYTES_PER_TICK;
+            _frequency      = aFrequency;
+            _delta          = aDelta;
             _bufferSize     = AudioSequencer.BUFFER_SIZE;
-            _lengthIncr     = _length * AudioSequencer.BYTES_PER_TICK;
-            _release        = isNaN( aReleaseTime ) ? _bufferSize : aReleaseTime;
+            decay           = aDecayTime;
+            attack          = isNaN( aAttackTime ) ? 0 : aAttackTime;
+            release         = isNaN( aReleaseTime ) ? 0 : aReleaseTime;
+
+            _releaseStart   = _sampleLength;
 
             _phase          = 0.0;
             _phaseIncr      = aFrequency / AudioSequencer.SAMPLE_RATE;
@@ -75,23 +87,25 @@ package nl.igorski.lib.audio.generators.waveforms.base
             _pan        = aPan;
             volume      = aVolume;
 
-            _modifiers      = new Vector.<IModifier>();
-            if ( aModifiers != null )
-            {
-                for each( var m:IModifier in aModifiers )
-                    _modifiers.push( m );
-            }
-            _active = true;
+            _modifiers  = new Vector.<IModifier>();
+            _modulators = new Vector.<IModulator>();
+
+            _bufferedSamples = 0;
+            _active     = true;
         }
 
         //_________________________________________________________________________________________________________
         //                                                                                              P U B L I C
 
-        public function generate( buffer: Vector.<Vector.<Number>> ):Boolean
+        public function generate( buffer:Vector.<Vector.<Number>> ):void
         {
-            // override in subclass
-            return true;
+            /*
+             * override in your subclass, this is where all
+             * the calculations are performed that shape
+             * the waveform and send them through their modifiers */
         }
+
+        /* envelopes */
 
         public function getData():VOEnvelopes
         {
@@ -115,6 +129,106 @@ package nl.igorski.lib.audio.generators.waveforms.base
             release = data.release;
         }
 
+        /* modulators */
+
+        public function getAllModulators():Vector.<IModulator>
+        {
+            return _modulators;
+        }
+
+        public function setAllModulators( value:Vector.<IModulator> ):void
+        {
+            if ( value != null )
+                _modulators = value;
+            else
+                _modulators = new Vector.<IModulator>();
+        }
+
+        public function getModulator( modulatorClass:Class ):IModulator
+        {
+            var modulator:IModulator;
+
+            for ( var i:int = 0; i < _modulators.length; ++i )
+            {
+                modulator = _modulators[i];
+
+                if ( modulator != null && modulator is modulatorClass )
+                    return modulator;
+            }
+            return null;
+        }
+
+        public function setModulator( modulator:IModulator ):void
+        {
+            _modulators.push( modulator );
+        }
+
+        public function removeModulator( modulatorClass:Class ):void
+        {
+            var theModulator:IModulator;
+
+            for ( var i:int = _modulators.length - 1; i >= 0; --i )
+            {
+                theModulator = _modulators[i];
+
+                if ( theModulator != null && theModulator is modulatorClass ) {
+                    _modulators.splice( i,  1 );
+                    theModulator = null;
+                    break;
+                }
+            }
+        }
+
+        /* modifiers */
+
+        public function getAllModifiers():Vector.<IModifier>
+        {
+            return _modifiers;
+        }
+
+        public function setAllModifiers( value:Vector.<IModifier> ):void
+        {
+            if ( value != null )
+                _modifiers = value;
+            else
+                _modifiers = new Vector.<IModifier>();
+        }
+
+        public function getModifier( modifierClass:Class ):IModifier
+        {
+            var modifier:IModifier;
+
+            for ( var i:int = 0; i < _modifiers.length; ++i )
+            {
+                modifier = _modifiers[i];
+
+                if ( modifier != null && modifier is modifierClass )
+                    return modifier;
+            }
+            return null;
+        }
+
+        public function setModifier( modifier:IModifier ):void
+        {
+            _modifiers.push( modifier );
+        }
+
+        public function removeModifier( modifierClass:Class ):void
+        {
+            var theModifier:IModifier;
+
+            for ( var i:int = _modifiers.length - 1; i >= 0; --i )
+            {
+                theModifier = _modifiers[i];
+
+                if ( theModifier != null && theModifier is modifierClass ) {
+                    _modifiers.splice( i,  1 );
+                    theModifier = null;
+                    break;
+                }
+            }
+        }
+
         //_________________________________________________________________________________________________________
         //                                                                        G E T T E R S   /   S E T T E R S
 
@@ -132,7 +246,7 @@ package nl.igorski.lib.audio.generators.waveforms.base
         public function set length( value:Number ):void
         {
             _length         = isNaN( value ) ? 1 : value;
-            _lengthIncr     = _length * AudioSequencer.BYTES_PER_TICK;
+            _sampleLength   = _length * AudioSequencer.BYTES_PER_TICK;
         }
 
         public function get active():Boolean
@@ -148,7 +262,7 @@ package nl.igorski.lib.audio.generators.waveforms.base
         // envelopes
         public function get volume():Number
         {
-            return _volumeL / ( 1 - _pan );
+            return _volume;
         }
 
         public function set volume( value:Number ):void
@@ -156,8 +270,18 @@ package nl.igorski.lib.audio.generators.waveforms.base
             if ( isNaN( value ))
                 value = 1;
 
-            _volumeL = ( 1 - _pan ) * value;
-            _volumeR = ( _pan + 1 ) * value;
+            _volume = value;
+
+            // panned left
+            if ( _pan < 0 ) {
+                _volumeL = value;
+                _volumeR = ( _pan + 1 ) * value;
+            }
+            // panned right
+            else {
+                _volumeL = ( 1 - _pan ) * value;
+                _volumeR = value;
+            }
         }
 
         public function get attack():Number
@@ -169,6 +293,17 @@ package nl.igorski.lib.audio.generators.waveforms.base
         {
             if ( !isNaN( value ))
                 _attack = value;
+
+            // no attack set ? WRONG! let's create a very minimal
+            // one to prevent popping during sound start
+            if ( _attack == 0 )
+                _attack = ( DEFAULT_FADE_DURATION / _sampleLength );
+
+            _attackIncr = 1 / ( _sampleLength * value );
+            _attackEnv  = 0;
+
+            // update release envelope as it takes parameters from the attack envelope
+            release = _release;
         }
 
         public function get decay():int
@@ -189,10 +324,36 @@ package nl.igorski.lib.audio.generators.waveforms.base
             return _release;
         }
 
+        /*
+         * release is calculated backwards from the total sample length, by
+         * default we set the release at a few samples before the end to
+         * prevent a pop occuring when audio suddenly stops / starts */
+
         public function set release( value:Number ):void
         {
             if ( !isNaN( value ))
                 _release = value;
+
+            // no release set ? WRONG! let's create a very minimal
+            // one to prevent popping during sound end
+
+            if ( _release == 0 )
+                _release = DEFAULT_FADE_DURATION / _sampleLength;
+
+            _releaseStart = ( _release == 0 ) ? _sampleLength : _sampleLength - ( _sampleLength * _release );
+            /*
+             * if a attack envelope has been set, set the
+             * release value to the attack envelope amount
+             * for a gradual fade in and out */
+
+             if ( _release > DEFAULT_FADE_DURATION && _attack > DEFAULT_FADE_DURATION ) {
+                _release       = _attack;
+                 _releaseStart = _sampleLength - ( _sampleLength * _release );
+                _attackIncr    = 1 / ( _releaseStart );
+             }
+
+            _releaseIncr  = 1 / ( _sampleLength - _releaseStart );
+            _releaseEnv   = 1;
         }
 
         public function get pan():Number
@@ -205,16 +366,6 @@ package nl.igorski.lib.audio.generators.waveforms.base
             var currentVolume:Number = volume;
             _pan   = value;
             volume = currentVolume;
-        }
-
-        public function get modifiers():Vector.<IModifier>
-        {
-            return _modifiers;
-        }
-
-        public function set modifiers( value:Vector.<IModifier> ):void
-        {
-            _modifiers = value;
         }
 
         //_________________________________________________________________________________________________________

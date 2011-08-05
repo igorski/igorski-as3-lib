@@ -1,7 +1,6 @@
 ﻿package nl.igorski.lib.utils
 {
     import flash.display.Sprite;
-    import flash.events.Event;
 
     /*
      * because sometimes you just need a quick progress bar
@@ -24,7 +23,7 @@
             _width  = width;
             _height = height;
 
-            addEventListener( Event.ADDED_TO_STAGE, initUI );
+            init();
         }
 
         //_________________________________________________________________________________________________________________
@@ -45,6 +44,7 @@
         {
             while ( numChildren > 0 )
                 removeChildAt( 0 );
+
             bg = null;
             bar = null;
         }
@@ -64,10 +64,8 @@
         //_________________________________________________________________________________________________________________
         //                                                                                    P R I V A T E   M E T H O D S
 
-        private function initUI( e:Event ):void
+        private function init():void
         {
-            removeEventListener( Event.ADDED_TO_STAGE, initUI );
-
             bg = new Sprite();
             with( bg.graphics )
             {

@@ -7,13 +7,16 @@ package nl.igorski.lib.audio.core
     import flash.utils.getQualifiedClassName;
     import flash.utils.getTimer;
 
+    import nl.igorski.lib.audio.core.events.SequencerEvent;
     import nl.igorski.lib.audio.core.interfaces.IBusModifier;
     import nl.igorski.lib.audio.core.interfaces.IModifier;
+    import nl.igorski.lib.audio.core.interfaces.IModulator;
+    import nl.igorski.lib.audio.generators.BufferGenerator;
     import nl.igorski.lib.audio.generators.Synthesizer;
     import nl.igorski.lib.audio.generators.waveforms.base.BaseWaveForm;
-    import nl.igorski.lib.audio.helpers.BulkCacher;
     import nl.igorski.lib.audio.model.vo.VOAudioEvent;
-    import nl.igorski.lib.audio.ui.NoteGrid;
+    import nl.igorski.lib.audio.ui.interfaces.IAudioTimeline;
+    import nl.igorski.lib.utils.MathTool;
 
     public final class AudioSequencer extends EventDispatcher
     {
@@ -34,7 +37,7 @@ package nl.igorski.lib.audio.core
          *
          * TEMPO        : in beats per minute
          */
-        public static var INSTANCE          :AudioSequencer;
+        private static var INSTANCE         :AudioSequencer;
         
         public static var BUFFER_SIZE       :int;
         public static var SAMPLE_RATE       :int = 44100;
@@ -43,6 +46,8 @@ package nl.igorski.lib.audio.core
         public static var BYTES_PER_BEAT    :int;
         public static var BYTES_PER_BAR     :int;
         public static var BYTES_PER_TICK    :int;
+        public static var AMOUNT_OF_VOICES  :int = 3;
+        public static var AMOUNT_OF_STEPS   :int = 16;
 
         private var _sound                  :Sound;
         private var _soundChannel           :SoundChannel;
@@ -58,14 +63,12 @@ package nl.igorski.lib.audio.core
         private var _synthesizer            :Synthesizer;
         private var _voices                 :Vector.<BaseWaveForm>;
         
-        // modifiers ( work on individual voices )
-        private var _modifiers              :Vector.<Vector.<IModifier>>;
-        
-        // bus modifiers ( works on the sum of all sounds ( i.e. "master" ))
+        // bus modifiers ( work on the sum of all sounds ( i.e. "master" ))
         private var _busModifiers           :Array;
-        private var _grids                  :Vector.<NoteGrid>;
+        private var _timelines              :Vector.<IAudioTimeline>;
         
         private var _isPlaying              :Boolean;
+        private var _doStop                 :Boolean;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
@@ -83,6 +86,7 @@ package nl.igorski.lib.audio.core
             tempo               = aTempo;
 
             _isPlaying          = false;
+            _doStop             = false;
 
             init();
         }
@@ -90,9 +94,9 @@ package nl.igorski.lib.audio.core
         //_________________________________________________________________________________________________________
         //                                                                                              P U B L I C
 
-        public static function positionToNumSamples( position: Number ):int
+        public static function getInstance():AudioSequencer
         {
-            return int(( position * 10584000.0 ) / TEMPO + .5 );
+            return INSTANCE;
         }
 
         public static function start():void
@@ -102,9 +106,16 @@ package nl.igorski.lib.audio.core
             
             INSTANCE._sound.addEventListener( SampleDataEvent.SAMPLE_DATA, INSTANCE.processAudio );
 
+            // add events at the first sequencer position
+            // to the synthesizer, as it otherwise gets skipped!
+            if ( INSTANCE._stepPosition == 0 )
+                INSTANCE.handleTick();
+
             INSTANCE._isPlaying      = true;
             INSTANCE._lastBuffer     = getTimer();
             INSTANCE._soundChannel   = INSTANCE._sound.play();
+
+            INSTANCE.dispatchEvent( new SequencerEvent( SequencerEvent.START ));
         }
 
         public static function pause():void
@@ -115,27 +126,50 @@ package nl.igorski.lib.audio.core
             INSTANCE._sound.removeEventListener( SampleDataEvent.SAMPLE_DATA, INSTANCE.processAudio );
             INSTANCE._isPlaying = false;
             INSTANCE.clearBuffer();
+
+            INSTANCE.dispatchEvent( new SequencerEvent( SequencerEvent.PAUSE ));
         }
 
+        /*
+         * "stopping" the sequencer is actually waiting for the
+         * current processAudio method to complete, and then
+         * dispatching the actual stop event, this prevents buffer
+         * underruns when asynchronously stopping the sequencer
+         * and performing complex calculations afterwards
+         */
         public static function stop():void
         {
-            INSTANCE._sound.removeEventListener( SampleDataEvent.SAMPLE_DATA, INSTANCE.processAudio );
-
-            INSTANCE._isPlaying = false;
-            INSTANCE.clearBuffer();
-            INSTANCE.init( false );
+            INSTANCE._doStop = true;
         }
         
         public static function reset():void
         {
-            stop();
+            if ( INSTANCE._isPlaying )
+                stop();
 
-            INSTANCE._synthesizer  = new Synthesizer( 3 );
-            INSTANCE._modifiers    = new Vector.<Vector.<IModifier>>( 3, true );
+            INSTANCE._synthesizer  = new Synthesizer( AMOUNT_OF_VOICES );
             INSTANCE._busModifiers = [];
             INSTANCE.init( false );
 
             invalidateCache();
+        }
+
+        public static function presynthesize():void
+        {
+            var tlVO:Vector.<Vector.<VOAudioEvent>> = new Vector.<Vector.<VOAudioEvent>>();
+
+            // collect all events from the timelines
+            for each( var tl:IAudioTimeline in INSTANCE._timelines )
+            {
+                var VOs:Vector.<VOAudioEvent> = new Vector.<VOAudioEvent>();
+
+                for ( var i:int = 0; i < AMOUNT_OF_STEPS; ++i ) {
+                    for each ( var vo:VOAudioEvent in tl.getFrequencies( i ))
+                        VOs.push( vo );
+                }
+                tlVO.push( VOs );
+            }
+            INSTANCE._synthesizer.presynthesize( tlVO );
         }
         
         public static function clearBus():void
@@ -163,7 +197,7 @@ package nl.igorski.lib.audio.core
         }
 
         /**
-         * returns a reference to a requested voice, for altering a voice's parameters
+         * returns a reference to a requested voice, for altering a voices parameters
          *
          * @param	index : index in the Vector holding the voice Class
          */
@@ -174,56 +208,16 @@ package nl.igorski.lib.audio.core
             return null;
         }
 
-        public static function attachNoteGrid( index:int, grid:NoteGrid ):void
+        public static function attachTimeline( index:int, timeline:IAudioTimeline ):void
         {
-            INSTANCE._grids[ index ] = grid;
+            INSTANCE._timelines[ index ] = timeline;
         }
 
-        public static function retrieveNoteGrid( index:int ):NoteGrid
+        public static function retrieveTimeline( index:int ):IAudioTimeline
         {
-            if ( index < INSTANCE._grids.length )
-                return INSTANCE._grids[ index ];
+            if ( index < INSTANCE._timelines.length )
+                return INSTANCE._timelines[ index ];
             return null;
-        }
-
-        /**
-         * adds modifiers to a voice
-         * @param	modifier: an IModifier object
-         * @param   voice   : the ( vector ) index corresponding to the voice the modifier should be attached to
-         * @param	index   : at what position will be the modifier be placed ( in case of multiple modifiers )
-         */
-        public static function addModifier( modifier:IModifier, voice:int = 0, index:int = 0 ):void
-        {
-            if ( INSTANCE._modifiers[ voice ] == null )
-                INSTANCE._modifiers[ voice ] = new Vector.<IModifier>();
-
-            INSTANCE._modifiers[ voice ][ index ] = modifier;
-            BaseWaveForm( getVoice( voice )).modifiers = INSTANCE._modifiers[ voice ];
-        }
-
-        /**
-         * removes modifiers from voices
-         * @param   voice : index of the voice we're targeting
-         * @param	index : index of the modifier to be removed
-         */
-        public static function removeModifier( voice:int = 0, index:int = 0 ):void
-        {
-            if ( INSTANCE._modifiers[ voice ] != null )
-            {
-                INSTANCE._modifiers[ voice ][ index ] = null;
-                INSTANCE._modifiers[ voice ].splice( index, 1 );
-            }
-            BaseWaveForm( getVoice( voice )).modifiers = INSTANCE._modifiers[ voice ];
-        }
-
-        /**
-         * returns a reference to a requested modifier, for altering a modifier's parameters
-         * @param   voice : index of the voice the modifier is attached to
-         * @param	index : index in the modifier in the voice's modifiers Vector
-         */
-        public static function getModifier( voice:int = 0, index:int = 0 ):IModifier
-        {
-            return INSTANCE._modifiers[ voice ][ index ];
         }
 
         /**
@@ -252,19 +246,47 @@ package nl.igorski.lib.audio.core
         
         /**
          * returns all parameters of a voice's modifier list
-         * @param	voice : index of the voice whose modifiers are requested
-         */
+         * @param voice : index of the voice whose modifiers are requested */
+
         public static function getVoiceModifierParameters( voice:int = 0 ):Array
         {
-            var modifiers:Array = INSTANCE.getVoiceModifiers( voice );
-            
-            if ( modifiers == null )
-                return null;
-            
-            var out:Array = [];
-            for each ( var m:IModifier in modifiers )
-                out.push( { type: getQualifiedClassName( m ), params: m.getData() } );
-            
+            var vwf         :BaseWaveForm = getVoice( voice );
+            var modifiers   :Vector.<IModifier> = vwf.getAllModifiers();
+            var out         :Array;
+
+            if ( modifiers != null )
+            {
+                out = [];
+
+                for ( var i:int = 0; i < modifiers.length; ++i )
+                {
+                    out.push( { type: getQualifiedClassName( modifiers[i] ),
+                                params: modifiers[i].getData()} );
+                }
+            }
+            return out;
+        }
+
+        /**
+         * returns all parameters of a voice's modulator list
+         * @param voice : index of the voice whose modulators are requested */
+
+         public static function getVoiceModulatorParameters( voice:int ):Array
+        {
+            var vwf         :BaseWaveForm = getVoice( voice );
+            var modulators  :Vector.<IModulator> = vwf.getAllModulators();
+            var out         :Array;
+
+            if ( modulators != null )
+            {
+                out = [];
+
+                for ( var i:int = 0; i < modulators.length; ++i )
+                {
+                    out.push( { type: getQualifiedClassName( modulators[i] ),
+                                params: modulators[i].getData()} );
+                }
+            }
             return out;
         }
         
@@ -310,11 +332,6 @@ package nl.igorski.lib.audio.core
             return INSTANCE._isPlaying;
         }
 
-        public static function get isCaching():Boolean
-        {
-            return INSTANCE._synthesizer.caching;
-        }
-        
         public static function get tempo():Number
         {
             return INSTANCE._tempo;
@@ -353,47 +370,45 @@ package nl.igorski.lib.audio.core
          */
         private function handleTick():void
         {
-            for( var i:int = 0; i < _grids.length; ++i )
+            for( var i:int = 0; i < _timelines.length; ++i )
             {
-                // collect all audio event objects at the current position for each grid
-                //vo.frequency, vo.length, _voices[i], _voices[i].volume, _voices[i].pan, _voices[i].decay, _voices[i].attack, _voices[i].release
-                for each ( var vo:VOAudioEvent in _grids[i].getFrequencies( _stepPosition ))
+                // collect all audio event objects at the current step position for each timeline
+                for each ( var vo:VOAudioEvent in _timelines[i].getFrequencies( _stepPosition ))
                     _synthesizer.addEvent( vo, i );
+
+                // update timeline pointer position, keeping the latency in mind! We also use
+                // the _position as it is the accurate representation of the sequencer step
+                // in the currently audible audio stream
+                _timelines[i].updatePosition( MathTool.roundPos(( _position - _latency ) / BYTES_PER_TICK ) - 1 );
             }
         }
 
         /**
-         * actually processes the audio events and generates and outputs sound!
-         *
-         * @param e SampleDataEvent from the current audio stream
-         */
+         * actually processes the audio events and outputs sound!
+         * @param e SampleDataEvent from the current audio stream */
 
         private function processAudio( e:SampleDataEvent ):void
         {
-            /*
             if( _soundChannel != null )
                 _latency = ( e.position * 2.267573696145e-02 ) - _soundChannel.position;
                 
-            var to:Number = _position + BUFFER_SIZE * ( tempo * 9.448223733938e-8 );
-            _lastBuffer = getTimer();
-            */
-            clearBuffer();
+            //var to:Number = _position + BUFFER_SIZE * ( tempo * 9.448223733938e-8 );
+            //_lastBuffer = getTimer();
 
-            // don't do anything if the BulkCacher is crunching
-            if ( !BulkCacher.isCaching )
-                _synthesizer.synthesize( _buffer );
+            clearBuffer();
+            _synthesizer.synthesize( _buffer );
                 
             var l:Vector.<Number> = _buffer[0];
             var r:Vector.<Number> = _buffer[1];
 
             var doModifiers:Boolean = ( _busModifiers.length > 0 );
-            
+
             for ( var i:int = 0; i < BUFFER_SIZE; ++i )
             {
                 if ( _position % BYTES_PER_TICK == 0 )
                 {
                     ++_stepPosition;
-                    if ( _stepPosition == 16 )
+                    if ( _stepPosition == AMOUNT_OF_STEPS )
                         _stepPosition = 0;
 
                     handleTick();
@@ -408,6 +423,12 @@ package nl.igorski.lib.audio.core
                     e.data.writeFloat( r[i] * _volume );
                 }
                 ++_position;
+                if ( _position > BYTES_PER_BAR )
+                    _position = 0;
+            }
+            if ( _doStop ) {
+                _sound.removeEventListener( SampleDataEvent.SAMPLE_DATA, processAudio );
+                doStop();
             }
         }
 
@@ -422,49 +443,47 @@ package nl.igorski.lib.audio.core
             if ( createObjects )
             {
                 // create a synthesizer for audio output
-                // we hard coded the amount of voices / grids here ( 3 )
-                _synthesizer    = new Synthesizer( 3 );
+                _synthesizer    = new Synthesizer( AMOUNT_OF_VOICES );
 
                 // create a voice vector for multiple wave shapes
                 _voices         = new Vector.<BaseWaveForm>();
 
-                // create a grid vector for multiple sequencers
-                _grids          = new Vector.<NoteGrid>();
+                /*
+                 * create a timeline vector for multiple sequencers
+                 * ( in case you need multiple sequencers for multiple instruments ) */
 
-                // create a modifier vector for attaching FX to voices
-                _modifiers      = new Vector.<Vector.<IModifier>>( 3, true );
+                 _timelines          = new Vector.<IAudioTimeline>();
 
-                // create a busmodifier array for attaching FX to the master bus
+                // create a bus modifier array for attaching FX to the master bus
                 _busModifiers   = [];
 
                 invalidateCache();
             }
-            _buffer       = new Vector.<Vector.<Number>>( 2, true );
-            _buffer[0]    = new Vector.<Number>( BUFFER_SIZE, true );
-            _buffer[1]    = new Vector.<Number>( BUFFER_SIZE, true );
+            _buffer       = BufferGenerator.generate();
             _position     = 0.0;
             _stepPosition = 0;
-
-            _sound = new Sound();
+            _sound        = new Sound();
         }
 
         /*
          * clears a currently cached audio buffer in the Synthesizer class
          *
-         * @voice              specify a voice index to invalidate for that voice, not passing this argument clears all voices
-         * @invalidateChildren also invalidates all VO audioEvent caches belonging to the voice's samples
-         * @immediateFlush     when true, caches are invalidated on next synthesize cycle rather than
-         *                     on the first step of the sequencer's loop
+         * @param voice              specify a voice index to invalidate for that voice, not passing this argument clears all voices
+         * @param invalidateChildren also invalidates all VO audioEvent caches belonging to the voice's samples
+         * @param immediateFlush     when true, caches are invalidated on next synthesize cycle rather than
+         *                           on the first step of the sequencer's loop
+         * @param recacheChildren    if children are to be invalidated this Boolean dictates whether their caches
+         *                           are to be rebuilt immediately
          */
-        public static function invalidateCache( voice:int = -1, invalidateChildren:Boolean = false, immediateFlush:Boolean = false ):void
+        public static function invalidateCache( voice:int = -1, invalidateChildren:Boolean = false, immediateFlush:Boolean = false, recacheChildren:Boolean = true ):void
         {
-            INSTANCE._synthesizer.invalidateCache( voice, invalidateChildren, immediateFlush );
+            INSTANCE._synthesizer.invalidateCache( voice, invalidateChildren, immediateFlush, recacheChildren );
         }
 
         private function clearBuffer(): void
         {
-            var l: Vector.<Number> = _buffer[0];
-            var r: Vector.<Number> = _buffer[1];
+            var l:Vector.<Number> = _buffer[0];
+            var r:Vector.<Number> = _buffer[1];
 
             for ( var i:int = 0; i < BUFFER_SIZE; ++i )
             {
@@ -472,21 +491,18 @@ package nl.igorski.lib.audio.core
                 r[i] = 0.0;
             }
         }
-        
-        private function getVoiceModifiers( voice:int ):Array
+
+        private function doStop():void
         {
-            if ( _modifiers[ voice ] != null )
-            {
-                var out:Array = [];
-                for ( var i:int = 0; i < _modifiers[ voice ].length; ++i )
-                {
-                    if ( _modifiers[ voice ][ i ] != null )
-                        out.push( _modifiers[ voice ][ i ] );
-                }
-                if ( out.length > 0 )
-                    return out;
-            }    
-            return null;
+            //INSTANCE._soundChannel.stop();
+
+            _isPlaying = false;
+            _doStop    = false;
+
+            clearBuffer();
+            init( false );
+
+            dispatchEvent( new SequencerEvent( SequencerEvent.STOP ));
         }
     }
 }

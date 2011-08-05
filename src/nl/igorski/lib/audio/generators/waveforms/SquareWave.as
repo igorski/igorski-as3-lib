@@ -1,6 +1,8 @@
 package nl.igorski.lib.audio.generators.waveforms
 {
     import nl.igorski.lib.audio.core.AudioSequencer;
+    import nl.igorski.lib.audio.core.interfaces.IModifier;
+    import nl.igorski.lib.audio.core.interfaces.IModulator;
     import nl.igorski.lib.audio.generators.waveforms.base.BaseWaveForm;
 
     public final class SquareWave extends BaseWaveForm
@@ -11,39 +13,40 @@ package nl.igorski.lib.audio.generators.waveforms
          * Date: 24-jan-2010
          * Time: 10:46:00
          */
-        private const VOLUME_MULTIPLIER :Number = .065;
+        private const VOLUME_MULTIPLIER :Number = .04;
+
         private var TWO_PI_OVER_SR      :Number;
         private var TWO_PI              :Number;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function SquareWave( aFrequency:Number = 440, aLength:Number = 1, aDecayTime:int = 70, aAttackTime:Number = 1, aReleaseTime:Number = 0, delta:int = 0, aVolume:Number = 1, aPan:Number = 0, aModifiers:Array = null ):void
+        public function SquareWave( aFrequency:Number = 440, aLength:Number = 1, aDecayTime:int = 70, aAttackTime:Number = 0, aReleaseTime:Number = 0, delta:int = 0, aVolume:Number = 1, aPan:Number = 0 ):void
         {
             TWO_PI          = 2 * Math.PI;
-            TWO_PI_OVER_SR  =  TWO_PI / AudioSequencer.SAMPLE_RATE;
+            TWO_PI_OVER_SR  = TWO_PI / AudioSequencer.SAMPLE_RATE;
 
-            super( aFrequency, aLength, aDecayTime, aAttackTime, aReleaseTime, delta, aVolume, aPan, aModifiers );
+            super( aFrequency, aLength, aDecayTime, aAttackTime, aReleaseTime, delta, aVolume, aPan );
         }
 
         //_________________________________________________________________________________________________________
         //                                                                                              P U B L I C
 
-        override public function generate( buffer: Vector.<Vector.<Number>> ):Boolean
+        override public function generate( buffer: Vector.<Vector.<Number>> ):void
         {
             var amplitude   :Number;
             var env         :Number;
             var tmp         :Number;
 
+            var theModulator:IModulator;
+            var theModifier :IModifier;
+
             var l           :Vector.<Number> = buffer[0];
             var r           :Vector.<Number> = buffer[1];
-            
-            var division    :Number = 1 / 20000;
-            var attackIncr  :Number = 1 / _bufferSize;
 
             for( var i:int = 0, j:int = _bufferSize; i < j; ++i )
             {
-                env = _decay * division;
+                env = _decay * ENVELOPE_MULTIPLIER;
 
                 if( _phase < .5 ) {
                     tmp = TWO_PI * ( _phase * 4.0 - 1.0 );
@@ -58,55 +61,69 @@ package nl.igorski.lib.audio.generators.waveforms
                 if ( _phase >= 1 )
                     --_phase;
 
-                // envelopes
-                if ( _attack < 1 ) {
-                    _attack += attackIncr;
-                    amplitude *= _attack;
+                // attack envelope
+                if ( _attack > 0 ) {
+                    if ( _attackEnv < 1 ) {
+                        _attackEnv += _attackIncr;
+                        amplitude *= _attackEnv;
+                    }
                 }
+                // release envelope
+                if ( _release > 0 )
+                {
+                    if (  _bufferedSamples >= _releaseStart ) {
+                        _releaseEnv -= _releaseIncr;
+                        amplitude   *= _releaseEnv;
+                    }
+                }
+
+                // optional modulation of the wave
+                if ( _modulators.length > 0 )
+                {
+                    for ( var m:int = 0; m < _modulators.length; ++m )
+                    {
+                        theModulator = _modulators[m];
+                        if ( theModulator != null )
+                            amplitude = theModulator.modulate( amplitude );
+                    }
+                }
+                // optional modifiers
                 if ( _modifiers.length > 0 )
                 {
-                    for ( var m:int = 0; m < _modifiers.length; ++m )
+                    for ( m = 0; m < _modifiers.length; ++m )
                     {
-                        l[i] += _modifiers[m].process( amplitude * _volumeL );
-                        r[i] += _modifiers[m].process( amplitude * _volumeR );
-                    }   
-                }
-                else {
-                    l[i] += amplitude * _volumeL;
-                    r[i] += amplitude * _volumeR;
-                }
-                if ( _length <= 1 ) {
-                    if( --_decay == 0 )
-                    {
-                        return true;
+                        theModifier = _modifiers[m];
+                        if ( theModifier != null )
+                            amplitude += theModifier.process( amplitude );
                     }
+                }
+                l[i] += amplitude * _volumeL;
+                r[i] += amplitude * _volumeR;
+
+                if ( _length <= 1 )
+                {
+                    if( --_decay == 0 )
+                        return;
+
                 } else {
-                   --_lengthIncr;
-                   if ( _lengthIncr <= 0 )
+                   --_sampleLength;
+                   if ( _sampleLength <= 0 )
                         --_length;
                 }
+                ++_bufferedSamples;
             }
-            return false;
         }
 
         //_________________________________________________________________________________________________________
         //                                                                        G E T T E R S   /   S E T T E R S
 
-        override public function get volume():Number
-        {
-            return ( _volumeL / VOLUME_MULTIPLIER ) / ( 1 - _pan );
-        }
-
         override public function set volume( value:Number ):void
         {
-            if ( isNaN( value ))
-                value = 1;
+            super.volume = value;
 
-            // square waves are LOUD
-            var v:Number    = value * VOLUME_MULTIPLIER;
-
-            _volumeL        = ( 1 - _pan ) * v;
-            _volumeR        = ( _pan + 1 ) * v;
+            // these get loud
+            _volumeL *= VOLUME_MULTIPLIER;
+            _volumeR *= VOLUME_MULTIPLIER;
         }
 
         //_________________________________________________________________________________________________________

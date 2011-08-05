@@ -1,5 +1,6 @@
 ﻿package nl.igorski.lib.ui.forms.base
 {
+    import flash.display.DisplayObject;
     import flash.display.Sprite;
     import flash.events.Event;
     import flash.events.FocusEvent;
@@ -37,12 +38,12 @@
 
         public var feedback                 :FeedbackWindow;
         public var form                     :Array;
-        public var formElements             :Array;
+        public var formElements             :Vector.<DisplayObject>;
         public var margin                   :int = 10;
         public var labelMargin              :int = 0;
         public var inputMargin              :int = 200;
         public var showLabelInInputField    :Boolean = false;
-        public var labelFieldBindings       :Array;
+        public var labelFieldBindings       :Vector.<Object>;
         public var _formWidth               :Number = 0;
         public var validated                :Boolean;
 
@@ -99,14 +100,12 @@
                     {
                         case Input:
                         case TextArea:
-                            return formElements[count].val;
-                            break;
-                        case Checkbox:
-                            return Checkbox( formElements[count] ).numericVal;
-                            break;
                         case RadioGroup:
                         case Select:
-                            return formElements[count].val;
+                            return IFormElement( formElements[ count ]).val;
+                            break;
+                        case Checkbox:
+                            return Checkbox( formElements[ count ]).numericVal;
                             break;
                     }
                 }
@@ -212,7 +211,7 @@
             while ( numChildren > 1 )
                 removeChildAt( 0 );
 
-            for each( var field:* in formElements )
+            for each( var field:Object in formElements )
                 field = null;
 
             formElements = null;
@@ -224,8 +223,8 @@
             var curY        :int = 0;
             var curTabIndex :int = 0;
 
-            labelFieldBindings   = [];
-            formElements         = [];
+            labelFieldBindings   = new Vector.<Object>;
+            formElements         = new Vector.<DisplayObject>;
 
             for each ( var item:Object in form )
             {
@@ -366,39 +365,45 @@
                     case Input:
                     case TextArea:
                         if ( item.required ) {
-                            if (formElements[count].val == '')
+                            var el:IFormElement = formElements[ count ] as IFormElement;
+                            if ( el.val == "" )
                             {
-                                formElements[count].doError();
+                                el.doError();
                                 error = true;
                             } else {
-                                formElements[count].undoError();
+                                el.undoError();
                             }
                         } else {
-                            formElements[count].undoError();
+                            el.undoError();
                         }
                         break;
                     case Checkbox:
-                        if ( item.required ) {
-                            if ( !Checkbox( formElements[count] ).val )
+                        if ( item.required )
+                        {
+                            el = formElements[ count ] as IFormElement;
+                            if ( !el.val )
                             {
-                                formElements[count].doError();
+                                el.doError();
                                 error = true;
                             } else {
-                                formElements[count].undoError();
+                                el.undoError();
                             }
                         }
                         break;
                     case RadioGroup:
-                        if ( item.required ) {
-                            if ( RadioGroup( formElements[count] ).val == "" )
+                        if ( item.required )
+                        {
+                            el = formElements[ count ] as IFormElement;
+
+                            if ( el.val == "" )
                             {
-                                formElements[count].doError();
+                                el.doError();
                                 error = true;
                             } else {
-                                formElements[count].undoError();
+                                el.undoError();
                             }
                         } else {
-                            formElements[count].undoError();
+                            el.undoError();
                         }
                         break;
                     case SubmitButton:

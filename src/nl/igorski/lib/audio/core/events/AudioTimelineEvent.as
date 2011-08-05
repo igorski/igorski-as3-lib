@@ -2,7 +2,7 @@ package nl.igorski.lib.audio.core.events
 {
     import flash.events.Event;
 
-    public class GridEvent extends Event
+    public class AudioTimelineEvent extends Event
     {
         /**
          * Created by IntelliJ IDEA.
@@ -10,15 +10,15 @@ package nl.igorski.lib.audio.core.events
          * Date: 21-dec-2010
          * Time: 12:04:14
          */
-        public static const LOCK    :String = 'GridEvent::LOCK';
-        public static const UNLOCK  :String = 'GridEvent::UNLOCK';
+        public static const LOCK    :String = 'AudioTimelineEvent::LOCK';
+        public static const UNLOCK  :String = 'AudioTimelineEvent::UNLOCK';
 
         // the index number of the grid block to remain active
         public var activeItem       :int = 0;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
-        public function GridEvent( eType:String = LOCK, eActiveItem:int = 0 )
+        public function AudioTimelineEvent( eType:String = LOCK, eActiveItem:int = 0 )
         {
             activeItem = eActiveItem;
             super( eType, false );

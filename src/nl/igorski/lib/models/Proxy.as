@@ -122,7 +122,7 @@
         /*
          * called to retrieve the data returned by the remote service
          */
-        public function getData():*
+        public function getData():Object
         {
             return _data;
         }
@@ -131,7 +131,7 @@
          * called by superclass to store data called by
          * the overwritten formatData method
          */
-        public function setData( value:* ):void
+        public function setData( value:Object ):void
         {
             _data = value;
         }

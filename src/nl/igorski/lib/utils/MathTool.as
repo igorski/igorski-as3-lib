@@ -61,9 +61,14 @@
         }
 
         /*
-         * 6 x faster than Math.floor and Math.ceil !!
-         * preferably you use these inline in your code when speed is of importance
-         */
+         * faster alternatives ( up to 600 % ) for the native Math functions, preferably
+         * you run these inline if speed is of vital importance */
+
+        public static function round( value:Number ):int
+        {
+            return ( value < 0 ) ? value + .5 == ( value | 0) ? value : value - .5 : value + .5;
+        }
+
         public static function floor( value:Number ):int
         {
             return ( value < 0 ) ? int( value - 1 ) : int( value );
@@ -72,6 +77,19 @@
         public static function ceil( value:Number ):int
         {
             return int( value + .5 );
+        }
+
+        /* these two are bitwise floor and round functions, and thus lightning fast
+           they only work on positive Numbers though !! thanks to Grant Skinner */
+
+        public static function floorPos( value:Number ):int
+        {
+            return value|0;
+        }
+
+        public static function roundPos( value:Number ):int
+        {
+            return value + 0.5|0;
         }
 
         //_________________________________________________________________________________________________________

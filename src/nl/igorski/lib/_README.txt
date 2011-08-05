@@ -1,5 +1,5 @@
 these files were first shared to create an open source library of the
-nl.igorski.lib.audio package, which is the the audio synthesis and caching
+nl.igorski.lib.audio-package, which is the the audio synthesis and caching
 engine used by www.onebarloop.com
 
 However, other classes and components used for www.onebar... ( and several other

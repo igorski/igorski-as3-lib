@@ -1,51 +1,43 @@
-﻿package nl.igorski.lib.ui.components
+package nl.igorski.lib.audio.core.events
 {
-    import flash.display.Sprite;
+    import flash.events.Event;
 
-    /**
-     * ...
-     * @author Igor Zinken
-     */
-    public class ScrollHandle extends Sprite
+    public class SequencerEvent extends Event
     {
+        /**
+         * Created by IntelliJ IDEA.
+         * User: igor.zinken
+         * Date: 21-dec-2010
+         * Time: 12:04:14
+         */
+        public static const START           :String = "SequencerEvent::START";
+        public static const STOP            :String = "SequencerEvent::STOP";
+        public static const PAUSE           :String = "SequencerEvent::PAUSE";
+        public static const TEMPO_CHANGE    :String = "SequencerEvent::TEMPO_CHANGE";
+
+        public var value                    :Number;
+
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
-
-        public function ScrollHandle()
+        public function SequencerEvent( aType:String = START, aValue:Number = 120 )
         {
-            initUI();
+            value = aValue;
+            super( aType, false );
         }
 
         //_________________________________________________________________________________________________________
-        //                                                                              P U B L I C   M E T H O D S
+        //                                                                                              P U B L I C
 
         //_________________________________________________________________________________________________________
-        //                                                                            G E T T E R S / S E T T E R S
+        //                                                                        G E T T E R S   /   S E T T E R S
 
         //_________________________________________________________________________________________________________
         //                                                                              E V E N T   H A N D L E R S
 
-        private function initUI():void
-        {
-            draw();
-        }
-
         //_________________________________________________________________________________________________________
         //                                                                        P R O T E C T E D   M E T H O D S
 
-        // override in subclass for custom skinning
-        protected function draw():void
-        {
-            with( graphics )
-            {
-                beginFill( 0x000000, 1 );
-                drawRect( 0, 0, 10, 50 );
-                endFill();
-            }
-        }
-
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S
-
     }
 }

@@ -9,6 +9,7 @@ package nl.igorski.lib.events
     {
         public static const RESIZE_EVENT    :String = "ViewEvent::RESIZE_EVENT";
         public static const MAXIMIZE_EVENT  :String = "ViewEvent::MAXIMIZE_EVENT";
+        public static const MINIMIZE_EVENT  :String = "ViewEvent::MINIMIZE_EVENT";
         public static const CHECK_EVENT     :String = "ViewEvent::CHECK_EVENT";
         public static const POPUP           :String = "ViewEvent::POPUP";
         public static const FEEDBACK        :String = "ViewEvent::FEEDBACK";

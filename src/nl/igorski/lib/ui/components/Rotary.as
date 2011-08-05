@@ -1,7 +1,6 @@
 package nl.igorski.lib.ui.components
 {
     import flash.display.Sprite;
-    import flash.events.Event;
 
     import flash.utils.clearInterval;
     import flash.utils.setInterval;
@@ -10,9 +9,8 @@ package nl.igorski.lib.ui.components
     import nl.igorski.lib.ui.components.events.SliderBarEvent;
 
     /**
-     * ...
-     * @author Igor Zinken
-     */
+     * @author Igor Zinken */
+
     public class Rotary extends Sprite
     {
         private const MAX_ROTATION      :Number = 260;
@@ -21,12 +19,14 @@ package nl.igorski.lib.ui.components
         protected var handle            :SliderBar;
         protected var bar               :Sprite;
         protected var bg                :Sprite;
+        protected var bgColor           :uint = 0x000000;
+        protected var barColor          :uint = 0xFFFFFF;
 
-        private var _min				:Number;
-        private var _max				:Number;
-        private var _size				:Number;
-        private var _default			:Number;
-        private var _enabled			:Boolean;
+        protected var _min              :Number;
+        protected var _max              :Number;
+        private var _size               :Number;
+        private var _default            :Number;
+        private var _enabled            :Boolean;
         private var _callbackDelay      :Number;
         private var _callbackIval       :uint;
 
@@ -48,9 +48,9 @@ package nl.igorski.lib.ui.components
          */
         public function Rotary( size:Number = 100, min:Number = 0, max:Number = 100, defaultValue:Number = 0, enabled:Boolean = true, delayCallback:Number = 0 ):void
         {
-            _size 	       = size * .5;
-            _min	       = min;
-            _max	       = max;
+            _size          = size * .5;
+            _min           = min;
+            _max           = max;
             _enabled       = enabled;
             _callbackDelay = delayCallback;
 
@@ -60,7 +60,7 @@ package nl.igorski.lib.ui.components
             _default   = defaultValue;
             _lastValue = defaultValue;
 
-            addEventListener( Event.ADDED_TO_STAGE, init );
+            init();
         }
 
         //_________________________________________________________________________________________________________________
@@ -74,18 +74,19 @@ package nl.igorski.lib.ui.components
 
         public function get value():Number
         {
-            var pct		:Number = rotationToPercentage( knob.rotation );
-            var dev		:Number = _max - _min;
+            var pct     :Number = rotationToPercentage( knob.rotation );
+            var dev     :Number = _max - _min;
 
-            return pct * dev;
+            return ( pct * dev ) + _min;
         }
 
         public function set value( v:Number ):void
         {
-            var pct     :Number = v / _max;
-            handle.value  = pct;
-            knob.rotation = percentageToRotation( pct );
+            var pct:Number = ( v - _min ) / ( _max - _min );
+            handle.value   = pct;
+            knob.rotation  = percentageToRotation( pct );
             drawCurve( value );
+
             dispatchEvent( new RotaryEvent( RotaryEvent.CHANGE, value ));
         }
 
@@ -126,9 +127,11 @@ package nl.igorski.lib.ui.components
             }
             else {
                 handle.enabled = false;
-                if ( handle.hasEventListener( SliderBarEvent.CHANGE )) {
+                if ( handle.hasEventListener( SliderBarEvent.CHANGE ))
+                {
                     handle.removeEventListener( SliderBarEvent.CHANGE, rotate );
                     handle.removeEventListener( SliderBarEvent.INTERACTION_START, handleStart );
+
                     if ( handle.hasEventListener( SliderBarEvent.INTERACTION_END ))
                         handle.removeEventListener( SliderBarEvent.INTERACTION_END, handleEnd );
                 }
@@ -139,45 +142,40 @@ package nl.igorski.lib.ui.components
         //_________________________________________________________________________________________________________________
         //                                                                                      E V E N T   H A N D L E R S
 
-        private function init( e:Event ):void
-        {
-            removeEventListener( Event.ADDED_TO_STAGE, init );
-
-            draw();
-
-            value	= _default;
-            enabled = _enabled;
-        }
-
-        private function rotate( e:SliderBarEvent ):void
+        protected function rotate( e:SliderBarEvent ):void
         {
             knob.rotation = percentageToRotation( e.value );
             drawCurve( value );
 
-            if ( _callbackDelay == 0 ) {
+            if ( _callbackDelay == 0 )
+            {
                 if ( _lastValue != value )
                     dispatchEvent( new RotaryEvent( RotaryEvent.CHANGE, value ));
+
                 _lastValue = value;
             }
-            else {
+            else
+            {
                 clearInterval( _callbackIval );
                 _callbackIval = setInterval( function():void
                 {
                     clearInterval( _callbackIval );
+
                     if ( _lastValue != value )
                         dispatchEvent( new RotaryEvent( RotaryEvent.CHANGE, value ));
+
                     _lastValue = value;
                 }, _callbackDelay );
             }
         }
 
-        private function handleStart( e:SliderBarEvent ):void
+        protected function handleStart( e:SliderBarEvent ):void
         {
             dispatchEvent( new RotaryEvent( RotaryEvent.INTERACTION_START ));
             handle.addEventListener( SliderBarEvent.INTERACTION_END, handleEnd, false, 0, true );
         }
 
-        private function handleEnd( e:SliderBarEvent ):void
+        protected function handleEnd( e:SliderBarEvent ):void
         {
             handle.removeEventListener( SliderBarEvent.INTERACTION_END, handleEnd );
 
@@ -193,10 +191,21 @@ package nl.igorski.lib.ui.components
         //_________________________________________________________________________________________________________________
         //                                                                                P R O T E C T E D   M E T H O D S
 
+        protected function init():void
+        {
+            draw();
+
+            value   = _default;
+            enabled = _enabled;
+        }
+
         // override these in your subclass for custom skinning
         protected function draw():void
         {
-            // knob - used for visual reference of current rotation
+            /*
+             * knob - used for visual reference of current rotation
+             * in this example it is actually invisible by default */
+
             knob               = new Sprite();
             knob.mouseEnabled  = false;
             with ( knob.graphics )
@@ -214,6 +223,10 @@ package nl.igorski.lib.ui.components
             bar.rotation     = bg.rotation;
             addChild( bar );
 
+            /*
+             * we actually drag a invisible SliderBar which is
+             * dispatching its value changes to this class */
+
             handle           = new SliderBar( SliderBar.VERTICAL, _size, 0, 1, 0, false, 40 );
             addChild( handle );
             handle.alpha     = 0;
@@ -225,8 +238,8 @@ package nl.igorski.lib.ui.components
         {
             v = rotationToPercentage( knob.rotation ) * .82;
 
-            var dir				:Number = 1;
-            var r				:Number = _size - 1;
+            var dir         :Number = 1;
+            var r           :Number = _size - 1;
 
             bar.graphics.clear();
 
@@ -238,7 +251,7 @@ package nl.igorski.lib.ui.components
             var span        :Number = Number( dir ) * diff / ( 2 * divs );
             var rc          :Number = Number( r ) / Math.cos( span );
 
-            bar.graphics.lineStyle( 4, 0xE7161C );
+            bar.graphics.lineStyle( 4, barColor );
             bar.graphics.moveTo( Math.cos( startAngle ) * Number( r ), Math.sin( startAngle ) * Number( r ));
 
             for ( var i:int = 0; i < divs; ++i )
@@ -265,31 +278,33 @@ package nl.igorski.lib.ui.components
             var span        :Number = Number( dir ) * diff / ( 2 * divs );
             var rc          :Number = Number( r ) / Math.cos( span );
 
-            bg.graphics.lineStyle( 4, 0x484848 );
+            bg.graphics.lineStyle( 4, bgColor );
             bg.graphics.moveTo( Math.cos( startAngle ) * Number( r ), Math.sin( startAngle ) * Number( r ));
 
             for ( var i:int = 0; i < divs; ++i )
             {
                 endAngle = startAngle + span;
                 startAngle = endAngle + span;
-                bg.graphics.curveTo( Math.cos( endAngle ) * rc, Math.sin(endAngle) * rc, Math.cos(startAngle) * Number(r), Math.sin(startAngle) * Number(r));
+                bg.graphics.curveTo( Math.cos( endAngle ) * rc, Math.sin( endAngle ) * rc,
+                                     Math.cos( startAngle ) * Number( r ), Math.sin( startAngle ) * Number( r ));
             }
+        }
+
+        protected function rotationToPercentage( rotation:Number ):Number
+        {
+            if ( rotation < 0 )
+                rotation = 180 + ( rotation + 180 );
+
+            return rotation / MAX_ROTATION;
+        }
+
+        protected function percentageToRotation( value:Number ):Number
+        {
+            return value * MAX_ROTATION;
         }
 
         //_________________________________________________________________________________________________________________
         //                                                                                    P R I V A T E   M E T H O D S
 
-        private function rotationToPercentage( rotation:Number ):Number
-        {
-            if ( rotation < 0 )
-                rotation = 180 + ( rotation + 180 );
-            
-            return rotation / MAX_ROTATION;
-        }
-
-        private function percentageToRotation( value:Number ):Number
-        {
-            return value * MAX_ROTATION;
-        }
     }
 }

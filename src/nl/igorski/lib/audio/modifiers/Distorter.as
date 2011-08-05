@@ -1,33 +1,77 @@
-package nl.igorski.lib.audio.core.events
+package nl.igorski.lib.audio.modifiers
 {
+    import nl.igorski.lib.audio.core.interfaces.IModifier;
+
     /**
      * Created by IntelliJ IDEA.
      * User: igorzinken
-     * Date: 12-04-11
-     * Time: 19:00
-     * To change this template use File | Settings | File Templates.
+     * Date: 01-08-11
+     * Time: 18:56
      */
-    import flash.events.Event;
-
-    public class AudioCacheEvent extends Event
+    public final class Distorter implements IModifier
     {
-        public static const CACHE_STARTED   :String = "AudioCacheEvent::CACHE_STARTED";
-        public static const CACHE_COMPLETED :String = "AudioCacheEvent::CACHE_COMPLETED";
-        public static const CACHE_DESTROYED :String = "AudioCacheEvent::CACHE_DESTROYED";
+        private var _amount     :Number;
+        private var _level      :Number;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function AudioCacheEvent( type:String )
+        public function Distorter( amount:Number = 0, level:Number = 1 )
         {
-            super( type, true );
+            _amount = amount;
+            _level  = level;
         }
 
         //_________________________________________________________________________________________________________
         //                                                                              P U B L I C   M E T H O D S
 
+        public function getData():Object
+        {
+            var data:Object = {};
+            data.amount = _amount;
+            data.level  = _level;
+
+            return data;
+        }
+
+        public function setData( data:Object ):void
+        {
+            _amount = data.amount;
+            _level  = data.level;
+        }
+
+        public function process( input:Number ):Number
+        {
+            if ( input > 0 )
+                    input = input * ( input + _amount ) / ( input * input + ( _amount - 1 ) * input + 1 );
+            else
+                input = -input * ( _amount - input ) / ( input * input + ( _amount - 1 ) * input + 1 );
+
+            return input * _level;
+        }
+
         //_________________________________________________________________________________________________________
         //                                                                            G E T T E R S / S E T T E R S
+
+        public function get amount():Number
+        {
+            return _amount;
+        }
+
+        public function set amount( value:Number ):void
+        {
+            _amount = value;
+        }
+
+        public function get level():Number
+        {
+            return _level;
+        }
+
+        public function set level( value:Number ):void
+        {
+            _level = value;
+        }
 
         //_________________________________________________________________________________________________________
         //                                                                              E V E N T   H A N D L E R S
@@ -37,5 +81,6 @@ package nl.igorski.lib.audio.core.events
 
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S
+
     }
 }

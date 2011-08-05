@@ -7,9 +7,10 @@ package nl.igorski.lib.audio.ui
     import flash.ui.Mouse;
     import flash.ui.MouseCursor;
     import flash.utils.setTimeout;
-    import nl.igorski.lib.audio.core.GridManager;
+    import nl.igorski.lib.audio.core.AudioTimelineManager;
+    import nl.igorski.lib.audio.ui.interfaces.IGridBlock;
 
-    public class NoteGridBlock extends Sprite
+    public class NoteGridBlock extends Sprite implements IGridBlock
     {
         /**
          * Created by IntelliJ IDEA.
@@ -27,7 +28,7 @@ package nl.igorski.lib.audio.ui
         private var _index                  :int;        
         private var _color                  :uint;
         private var _active                 :Boolean = false;
-        private var _grid                   :NoteGrid;
+        private var _grid                   :AudioTimeline;
         private var _position               :int;
 
         public static const WIDTH           :int = 25;
@@ -36,7 +37,7 @@ package nl.igorski.lib.audio.ui
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
         
-        public function NoteGridBlock( myGrid:NoteGrid = null, pitch:Number = 440, myOctave:int = 0, myIndex:int = 0, myColor:uint = 0xCCCCCC, myPosition:int = 0 )
+        public function NoteGridBlock( myGrid:AudioTimeline = null, pitch:Number = 440, myOctave:int = 0, myIndex:int = 0, myColor:uint = 0xCCCCCC, myPosition:int = 0 )
         {
             _grid     = myGrid;
             _pitch    = pitch;
@@ -62,6 +63,13 @@ package nl.igorski.lib.audio.ui
         
         public function setData( length:Number ):void
         {
+            if ( length == 0 ) {
+                if ( _active )
+                    clearIcon();
+
+                return;
+            }
+
             if ( icon == null )
             {
                 icon = new Sprite();
@@ -77,10 +85,10 @@ package nl.igorski.lib.audio.ui
             icon.graphics.drawRoundRect( WIDTH * .5 - ICON_SIZE * .5, WIDTH * .5 - ICON_SIZE * .5, w, ICON_SIZE, 5 );
             icon.graphics.endFill();
             _length = length;
-            
+
             _active = true;
 
-            _grid.setNote( _position, frequency, length, false );
+            _grid.setNote( _position, frequency, length, false, false );
         }
         
         /**
@@ -126,6 +134,17 @@ package nl.igorski.lib.audio.ui
                 setChildIndex( icon, numChildren - 1 );
         }
 
+        public function destroy():void
+        {
+            removeListeners();
+
+            while ( numChildren > 0 ) {
+                var o:* = getChildAt(0);
+                removeChildAt(0);
+                o = null;
+            }
+        }
+
         //_________________________________________________________________________________________________________
         //                                                                        G E T T E R S   /   S E T T E R S
 
@@ -139,6 +158,7 @@ package nl.igorski.lib.audio.ui
         {
             if ( _active )
                 return _pitch;
+
             return 0;
         }
         
@@ -165,7 +185,7 @@ package nl.igorski.lib.audio.ui
 
         public function set disabled( value:Boolean ):void
         {
-            if ( !value )
+            if ( value )
             {
                 mouseEnabled = false;
                 removeEventListener( MouseEvent.ROLL_OVER, handleRollOver );
@@ -175,8 +195,8 @@ package nl.igorski.lib.audio.ui
                 mouseEnabled = true;
                 if ( !hasEventListener( MouseEvent.ROLL_OVER ))
                 {
-                    addEventListener( MouseEvent.ROLL_OVER, handleRollOver, false, 0, true );
-                    addEventListener( MouseEvent.MOUSE_DOWN, handleMouseDown, false, 0, true );
+                    addEventListener( MouseEvent.ROLL_OVER, handleRollOver );
+                    addEventListener( MouseEvent.MOUSE_DOWN, handleMouseDown );
                 }
             }
         }
@@ -232,12 +252,12 @@ package nl.igorski.lib.audio.ui
                 case false:
                     _active = true;
                     _length = 0;
-                    GridManager.lockGrid( _index );
+                    AudioTimelineManager.lockTimeline( _index );
                     clearIcon();
                     icon = new Sprite();
                     addChild( icon );
-                    stage.addEventListener( MouseEvent.MOUSE_MOVE, handleIconDraw,   false, 0, true );
-                    stage.addEventListener( MouseEvent.MOUSE_UP, handleDrawComplete, false, 0, true );
+                    stage.addEventListener( MouseEvent.MOUSE_MOVE, handleIconDraw );
+                    stage.addEventListener( MouseEvent.MOUSE_UP, handleDrawComplete );
                     break;
             }
         }
@@ -291,7 +311,7 @@ package nl.igorski.lib.audio.ui
 
         private function handleDrawComplete( e:MouseEvent ):void
         {
-            GridManager.unlockGrid();
+            AudioTimelineManager.unlockTimeline();
             
             stage.removeEventListener( MouseEvent.MOUSE_MOVE, handleIconDraw );
             stage.removeEventListener( MouseEvent.MOUSE_UP, handleDrawComplete );
@@ -320,9 +340,9 @@ package nl.igorski.lib.audio.ui
             if ( hasEventListener( MouseEvent.ROLL_OVER ))
                 return;
             
-            addEventListener( MouseEvent.ROLL_OVER,  handleRollOver,  false, 0, true );
-            addEventListener( MouseEvent.ROLL_OUT,   handleRollOut,   false, 0, true );
-            addEventListener( MouseEvent.MOUSE_DOWN, handleMouseDown, false, 0, true );
+            addEventListener( MouseEvent.ROLL_OVER,  handleRollOver );
+            addEventListener( MouseEvent.ROLL_OUT,   handleRollOut );
+            addEventListener( MouseEvent.MOUSE_DOWN, handleMouseDown );
         }
         
         private function removeListeners():void
@@ -330,6 +350,11 @@ package nl.igorski.lib.audio.ui
             removeEventListener( MouseEvent.ROLL_OVER,  handleRollOver );
             removeEventListener( MouseEvent.ROLL_OUT,   handleRollOut );
             removeEventListener( MouseEvent.MOUSE_DOWN, handleMouseDown );
+
+            if ( stage != null && stage.hasEventListener( MouseEvent.MOUSE_MOVE )) {
+                stage.removeEventListener( MouseEvent.MOUSE_MOVE, handleIconDraw );
+                stage.removeEventListener( MouseEvent.MOUSE_UP, handleDrawComplete );
+            }
         }
     }
 }

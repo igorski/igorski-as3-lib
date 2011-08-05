@@ -29,17 +29,26 @@ package nl.igorski.lib.audio.helpers
          * creates a new instance of the source object ( must extend
          * the BaseWaveForm Class ) containing all the properties of the source
          *
-         * @source object extending the BaseWaveForm class
+         * @param source object extending the BaseWaveForm class
+         * @param frequency ( optional ) the frequency in Hz if the copy should have a different pitch
+         * @param length ( optional ) the length ( in sequencer steps ) if the copy should have a different length
          */
-        public static function clone( source:BaseWaveForm ):BaseWaveForm
+        public static function clone( source:BaseWaveForm = null, frequency:Number = -1,  length:Number = -1 ):BaseWaveForm
         {
             var output:BaseWaveForm;
 
             var sourceClass:Class = getDefinitionByName( getQualifiedClassName( source )) as Class;
             output = new sourceClass();
 
+            if ( frequency > -1 )
+                output.frequency = frequency;
+
+            if ( length > -1 )
+                output.length = length;
+
             output.setData( source.getData());
-            output.modifiers = source.modifiers;
+            output.setAllModulators( source.getAllModulators());
+            output.setAllModifiers( source.getAllModifiers());
 
             return output;
         }

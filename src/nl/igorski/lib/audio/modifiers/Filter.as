@@ -3,7 +3,7 @@ package nl.igorski.lib.audio.modifiers
     import nl.igorski.lib.audio.core.AudioSequencer;
     import nl.igorski.lib.audio.core.interfaces.IModifier;
 
-    public class Filter implements IModifier
+    public final class Filter implements IModifier
     {
         protected var f     :Number = 0;
         protected var r     :Number = Math.SQRT2;
@@ -52,7 +52,7 @@ package nl.igorski.lib.audio.modifiers
 
         public function getData():Object
         {
-            var data:Object = { };
+            var data:Object = {};
 
             data.cutoff    = f;
             data.resonance = r;

@@ -42,9 +42,9 @@
         {
             with( graphics )
             {
-                lineStyle( 1, 0xFFFFFF );
-                moveTo( 3, 0 );
-                lineTo( 0, _height );
+                beginFill( 0xFFFFFF );
+                drawRect( 0, 0, 10, _height );
+                endFill();
             }
         }
 

@@ -15,7 +15,7 @@
      */
     public class StdTextField extends TextField
     {
-        private var _styleType   :String;
+        private var _font        :String;
         private var _textFormat  :TextFormat;
         private var _styleSheet  :StyleSheet;
         private var _useCSS      :Boolean;
@@ -23,11 +23,14 @@
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function StdTextField( styleType:String = Fonts.DEFAULT, useCSS:Boolean = false )
+        public function StdTextField( font:String = null, useCSS:Boolean = false )
         {
             super();
 
-            _styleType      = styleType;
+            if ( font == null )
+                font = Fonts.DEFAULT;
+
+            _font           = font;
             _useCSS         = useCSS;
 
             autoSize        = TextFieldAutoSize.LEFT;
@@ -48,12 +51,12 @@
         //_________________________________________________________________________________________________________
         //                                                                              P U B L I C   M E T H O D S
 
-        public function setStyle( style:String ):void
+        public function setFont( font:String ):void
         {
-            if ( style != _styleType || _textFormat == null )
+            if ( font != _font || _textFormat == null )
             {
-                _styleType  = style;
-                _textFormat = Fonts.getTextFormat( style ), 0, text.length;
+                _font       = font;
+                _textFormat = Fonts.getTextFormat( font ), 0, text.length;
             }
             setTextFormat( _textFormat );
 
@@ -64,7 +67,7 @@
         public function setStyleSheet( styleSheet:StyleSheet ):void
         {
             _styleSheet = styleSheet;
-            setStyle( _styleType );
+            setFont( _font );
         }
 
         /*
@@ -99,7 +102,7 @@
             super.text = value;
 
             if(  value != "" )
-                setStyle( _styleType );
+                setFont( _font );
         }
 
         override public function set htmlText( value:String ):void
@@ -107,7 +110,7 @@
             super.htmlText = value;
 
             if ( value != "" )
-                setStyle( _styleType );
+                setFont( _font );
         }
 
         //_________________________________________________________________________________________________________

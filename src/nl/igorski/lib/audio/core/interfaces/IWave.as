@@ -26,17 +26,21 @@ package nl.igorski.lib.audio.core.interfaces
         function set release( value:Number ):void;
 
         // function to set and retrieve all envelopes via a value object
-        function setData( data:VOEnvelopes ):void;
+        function setData( envelopes:VOEnvelopes ):void;
         function getData():VOEnvelopes;
 
-        // and modifiers
-        function get modifiers():Vector.<IModifier>
-        function set modifiers( value:Vector.<IModifier> ):void
+        // and modulators
+        function getAllModulators():Vector.<IModulator>
+        function setAllModulators( value:Vector.<IModulator> ):void
+
+        // ...and modifiers
+        function getAllModifiers():Vector.<IModifier>
+        function setAllModifiers( value:Vector.<IModifier> ):void
 
         // generation related
         function get active():Boolean;
         function set active( value:Boolean ):void;
 
-        function generate( buffer:Vector.<Vector.<Number>> ):Boolean;
+        function generate( buffer:Vector.<Vector.<Number>> ):void;
     }
 }

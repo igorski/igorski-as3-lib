@@ -27,7 +27,7 @@ package nl.igorski.lib.audio.generators
         /*
          * @length the length of the audio fragment to cache ( in bytes )
          * @autoValidate whether the write function will automatically declare this cache as valid
-         *               after enough cycles have completed the full cache length
+         *               all cycles have completed to fulfill the declared length
          */
         public function AudioCache( length:int = 0, autoValidate:Boolean = true )
         {
@@ -54,15 +54,15 @@ package nl.igorski.lib.audio.generators
                 position = readPointer;
                 
                 readPointer += length;
-                //trace( "reading " + length + " bytes from position " + position );
+
                 if ( readPointer >= _length )
                     readPointer = 0;
             }
             var out:Vector.<Vector.<Number>> = BufferGenerator.generate( length );
 
             if ( _cachedWave != null ) {
-                out[0] = _cachedWave[0].slice( position, position + length );
-                out[1] = _cachedWave[1].slice( position, position + length );
+                out[0] = ( _cachedWave[0].slice( position, position + length )) as Vector.<Number>;
+                out[1] = ( _cachedWave[1].slice( position, position + length )) as Vector.<Number>;
             }
             return out;
         }
@@ -86,13 +86,16 @@ package nl.igorski.lib.audio.generators
 
             if ( position + length > _length )
                 length = _length - position;
+
+            if ( _cachedWave == null )
+                clear();
             
-            // trace( "writing "+ length + " bytes at " + position );
             for ( var i:int = position, j:int = position + length; i < j; ++i )
             {
                 _cachedWave[0][i] += data[0][i - position];
                 _cachedWave[1][i] += data[1][i - position];
             }
+
             if ( !_autoValidate )
                 return;
 

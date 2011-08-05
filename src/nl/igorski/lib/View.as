@@ -2,6 +2,7 @@ package nl.igorski.lib
 {
     import flash.events.EventDispatcher;
     import nl.igorski.lib.events.ViewEvent;
+
     /**
      * View is a helper which can be attached to the lowest level
      * displayObject ( such as a site container ) for triggering
@@ -13,9 +14,9 @@ package nl.igorski.lib
      */
     public class View extends EventDispatcher
     {
-        public static var INSTANCE  :View = new View();
+        private static var INSTANCE  :View = new View();
         
-        private var _busy           :Boolean = false;
+        private var _busy            :Boolean = false;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
@@ -29,19 +30,33 @@ package nl.igorski.lib
         //_________________________________________________________________________________________________________
         //                                                                              P U B L I C   M E T H O D S
 
+        /**
+         * we use view as a static class, as such no references to the INSTANCE
+         * are made, we wrap these event functions to the instance internally */
+
+        public static function addEventListener( type:String, listener:Function ):void
+        {
+            INSTANCE.addEventListener( type, listener );
+        }
+
+        public static function removeEventListener( type:String, listener:Function ):void
+        {
+            INSTANCE.removeEventListener( type, listener );
+        }
+
         /*
-         * launch a popup window showing @content
-         */
+         * request a popup window showing @param content */
+
         public static function popup( content:* ):void
         {
             INSTANCE.dispatchEvent( new ViewEvent( ViewEvent.POPUP, content ));
         }
 
         /*
-         * display a feedback message @text
+         * display a feedback message String from @param text
          * you may choose to use nl.igorski.lib.ui.components.FeedbackWindow or a similar
-         * class to display this message
-         */
+         * class to display this message */
+
         public static function feedback( text:String ):void
         {
             INSTANCE.dispatchEvent( new ViewEvent( ViewEvent.FEEDBACK, text ));
@@ -50,10 +65,13 @@ package nl.igorski.lib
         /*
          * dispatched by main displayObjects stage listener
          * all classes listening to this View's instance broadcasting this event
-         * can now process their resize callback accordingly
-         */
-        public static function resize( type:String = ViewEvent.RESIZE_EVENT ):void
+         * can now process their resize callback accordingly */
+
+        public static function resize( type:String = null ):void
         {
+            if ( type == null )
+                type = ViewEvent.RESIZE_EVENT;
+
             INSTANCE.dispatchEvent( new ViewEvent( type ));
         }
 

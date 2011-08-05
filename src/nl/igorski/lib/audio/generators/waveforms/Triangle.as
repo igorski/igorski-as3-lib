@@ -1,5 +1,7 @@
 package nl.igorski.lib.audio.generators.waveforms
 {
+    import nl.igorski.lib.audio.core.interfaces.IModifier;
+    import nl.igorski.lib.audio.core.interfaces.IModulator;
     import nl.igorski.lib.audio.generators.waveforms.base.BaseWaveForm;
 
     public final class Triangle extends BaseWaveForm
@@ -11,33 +13,34 @@ package nl.igorski.lib.audio.generators.waveforms
          * Time: 17:02:29
          */
 
+        private static const VOLUME_MULTIPLIER  :Number = 2.5;
+
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function Triangle( aFrequency:Number = 440, aLength:Number = 1, aDecayTime:int = 70, aAttackTime:Number = 1, aReleaseTime:Number = 0, delta:int = 0, aVolume:Number = 1, aPan:Number = 0, aModifiers:Array = null ):void
+        public function Triangle( aFrequency:Number = 440, aLength:Number = 1, aDecayTime:int = 70, aAttackTime:Number = 0, aReleaseTime:Number = 0, delta:int = 0, aVolume:Number = 1, aPan:Number = 0 ):void
         {
-            DECAY_MULTIPLIER = 300;
-            super( aFrequency, aLength, aDecayTime, aAttackTime, aReleaseTime, delta, aVolume, aPan, aModifiers );
+            super( aFrequency, aLength, aDecayTime, aAttackTime, aReleaseTime, delta, aVolume, aPan );
         }
 
         //_________________________________________________________________________________________________________
         //                                                                                              P U B L I C
 
-        override public function generate( buffer: Vector.<Vector.<Number>> ):Boolean
+        override public function generate( buffer: Vector.<Vector.<Number>> ):void
         {
             var amplitude   :Number;
             var env         :Number;
             var tmp         :Number;
 
+            var theModulator:IModulator;
+            var theModifier :IModifier;
+
             var l           :Vector.<Number> = buffer[0];
             var r           :Vector.<Number> = buffer[1];
-            
-            var division    :Number = 1 / 20000;
-            var attackIncr  :Number = 1 / _bufferSize;
 
             for( var i:int = 0, j:int = _bufferSize; i < j; ++i )
             {
-                env = _decay * division;
+                env = _decay * ENVELOPE_MULTIPLIER;
 
                 if( _phase < .5 ) {
                     tmp = ( _phase * 4.0 - 1.0 );
@@ -53,47 +56,72 @@ package nl.igorski.lib.audio.generators.waveforms
                 if( _phase >= 1 )
                     --_phase;
 
-                // envelopes
-                if ( _attack < 1 ) {
-                    _attack += attackIncr;
-                    amplitude *= _attack;
-                }
-                if ( _modifiers.length > 0 )
-                {
-                    for ( var m:int = 0; m < _modifiers.length; ++m )
-                    {
-                        l[i] += _modifiers[m].process( Math.abs( amplitude * _volumeL ));
-                        r[i] += _modifiers[m].process( Math.abs( amplitude * _volumeR ));
+                // attack envelope
+                if ( _attack > 0 ) {
+                    if ( _attackEnv < 1 ) {
+                        _attackEnv += _attackIncr;
+                        amplitude *= _attackEnv;
                     }
                 }
-                else {
-                    l[i] += Math.abs( amplitude * _volumeL );
-                    r[i] += Math.abs( amplitude * _volumeR );
+                // release envelope
+                if ( _release > 0 )
+                {
+                    if (  _bufferedSamples >= _releaseStart ) {
+                        _releaseEnv -= _releaseIncr;
+                        amplitude   *= _releaseEnv;
+                    }
                 }
+
+                // the actual triangle function ( at 25 x the speed of the slow Math.abs function )
+                amplitude = amplitude < 0 ? -amplitude : amplitude;
+
+                // optional modulation of the wave
+                if ( _modulators.length > 0 )
+                {
+                    for ( var m:int = 0; m < _modulators.length; ++m )
+                    {
+                        theModulator = _modulators[m];
+                        if ( theModulator != null )
+                            amplitude = theModulator.modulate( amplitude );
+                    }
+                }
+                // optional modifiers
+                if ( _modifiers.length > 0 )
+                {
+                    for ( m = 0; m < _modifiers.length; ++m )
+                    {
+                        theModifier = _modifiers[m];
+                        if ( theModifier != null )
+                            amplitude += theModifier.process( amplitude );
+                    }
+                }
+                l[i] += amplitude * _volumeL;
+                r[i] += amplitude * _volumeR;
+
                 if ( _length <= 1 )
                 {
                     if( --_decay == 0 )
-                    {
-                        return true;
-                    }
+                        return;
+
                 } else {
-                   --_lengthIncr;
-                   if ( _lengthIncr <= 0 )
+                   --_sampleLength;
+                   if ( _sampleLength <= 0 )
                         --_length;
                 }
+                ++_bufferedSamples;
             }
-            return false;
         }
         
         //_________________________________________________________________________________________________________
         //                                                                        G E T T E R S   /   S E T T E R S
 
-        override public function set decay( value:int ):void
+        override public function set volume( value:Number ):void
         {
-            if ( isNaN( value ) || value == 0 )
-                value = 70;
+            super.volume = value;
 
-            _decay = Math.round( value * DECAY_MULTIPLIER );
+            // these need to be a tad louder...
+            _volumeL *= VOLUME_MULTIPLIER;
+            _volumeR *= VOLUME_MULTIPLIER;
         }
 
         //_________________________________________________________________________________________________________

@@ -1,5 +1,6 @@
 package nl.igorski.lib.audio.model.vo
 {
+    import flash.events.Event;
     import flash.events.EventDispatcher;
 
     import nl.igorski.lib.audio.core.AudioSequencer;
@@ -27,14 +28,18 @@ package nl.igorski.lib.audio.model.vo
         public var delta        :int;
         public var autoCache    :Boolean;
         public var isCaching    :Boolean;
+        public var id           :String;
 
-        // the cached representation of this events
-        // audio properties, used for output by the
-        // Synthesizer class
+        /* the cached representation of this event's
+         * audio properties, used for output by the
+         * Synthesizer class */
+
         public var sample       :AudioCache;
         private var wave        :BaseWaveForm;
 
-        public var id           :String;
+        public var sampleLength :int;
+        public var sampleStart  :int;
+        public var sampleEnd    :int;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
@@ -51,13 +56,15 @@ package nl.igorski.lib.audio.model.vo
                 try {
                     this[ i ] = data[ i ];
                 }
-                catch ( e:Error )
-                {
+                catch ( e:Error ) {
                     trace( "property " + i + " non-existent in VOAudioEvent" );
                 }
             }
             // create unique identifier
-            id = voice + ":" + frequency + "/" + length + "@" + delta;
+            id = "V:" + voice + "@" + delta + "l:" + length + "f:" + frequency + "Hz";
+
+            // set positions for sequencer
+            calculateLengths();
 
             // start caching
             if ( autoCache )
@@ -79,10 +86,7 @@ package nl.igorski.lib.audio.model.vo
             var sampleLength:int = AudioSequencer.BYTES_PER_TICK * length + 0.5|0;
             sample = new AudioCache( sampleLength );
 
-            wave = IWaveCloner.clone( AudioSequencer.getVoice( voice ));
-
-            wave.frequency = frequency;
-            wave.length    = length;
+            wave = IWaveCloner.clone( AudioSequencer.getVoice( voice ), frequency, length );
 
             // synthesize this event into audio
             for ( var i:int = 0; i < sampleLength; i += AudioSequencer.BUFFER_SIZE )
@@ -99,33 +103,27 @@ package nl.igorski.lib.audio.model.vo
         }
 
         /*
-         * generate some audio for the given buffer length
-         * this can be used by the Synthesizer class for writing
-         * straight into the currently playing audio buffer
-         */
-        public function generate( bufferLength:Number = -1 ):Vector.<Vector.<Number>>
+         * when VO is removed or invalidated due to parameters changes
+         * we free memory by clearing it's cached contents. An event is
+         * dispatched to listening Objects which might store a reference
+         * to this VOAudioEvent, such as the BulkCacher */
+
+        public function destroy():void
         {
-            isCaching = false;
-            sample    = null;
+            if ( sample != null )
+                sample.destroy();
 
-            if ( bufferLength == -1 )
-                bufferLength = AudioSequencer.BUFFER_SIZE;
+            sample = null;
+            wave   = null;
 
-            var output:Vector.<Vector.<Number>> = BufferGenerator.generate( bufferLength );
-            var source:BaseWaveForm             = AudioSequencer.getVoice( voice );
+            dispatchEvent( new Event( AudioCacheEvent.CACHE_DESTROYED ));
+        }
 
-            if ( wave == null ) {
-                var wave:BaseWaveForm = IWaveCloner.clone( source );
-                wave.active           = false;
-            } else {
-                wave.setData( source.getData());
-                wave.modifiers = source.modifiers;
-            }
-            wave.frequency = frequency;
-            wave.length    = length;
-            wave.generate( output );
-
-            return output;
+        public function calculateLengths():void
+        {
+            sampleLength = length * AudioSequencer.BYTES_PER_TICK;
+            sampleStart  = delta * AudioSequencer.BYTES_PER_TICK;
+            sampleEnd    = sampleStart + sampleLength;
         }
 
         //_________________________________________________________________________________________________________
