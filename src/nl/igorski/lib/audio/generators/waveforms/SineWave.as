@@ -92,21 +92,17 @@ package nl.igorski.lib.audio.generators.waveforms
                 l[i] += amplitude * _volumeL;
                 r[i] += amplitude * _volumeR;
 
-                /*
-                if ( _length <= 1 )
-                {
-                    if( --_decay == 0 )
-                        return;
-
-                } else {
-                   --_sampleLength;
-                   if ( _sampleLength <= 0 )
-                        --_length;
-                }*/
                 ++_bufferedSamples;
                 if ( _bufferedSamples == _sampleLength )
                     break;
-                // TODO: elegant fading!?
+
+                // prevent pop at end of sample
+                if ( _bufferedSamples >= _decayStart )
+                {
+                    _decay -= _decayIncr;
+                    if ( _decay <= 0 )
+                        return;
+                }
             }
         }
 

@@ -5,6 +5,7 @@ package nl.igorski.lib.audio.generators.waveforms.base
     import nl.igorski.lib.audio.core.interfaces.IModulator;
     import nl.igorski.lib.audio.core.interfaces.IWave;
     import nl.igorski.lib.audio.model.vo.VOEnvelopes;
+    import nl.igorski.lib.utils.MathTool;
 
     /**
      * class BaseWaveForm
@@ -21,7 +22,7 @@ package nl.igorski.lib.audio.generators.waveforms.base
     {
         protected var DECAY_MULTIPLIER          :int = 200;
         protected var ENVELOPE_MULTIPLIER       :Number = 1 / 20000;
-        protected var DEFAULT_FADE_DURATION     :int = 5;
+        protected var DEFAULT_FADE_DURATION     :int = 64;
 
         protected var _delta                    :int;     // position of this wave in the sequencer
         protected var _phase                    :Number;  // phase of the wave, creates pitch
@@ -34,6 +35,8 @@ package nl.igorski.lib.audio.generators.waveforms.base
         protected var _attackIncr               :Number;  // step value for attack envelope operations ( per sample )
         protected var _attackEnv                :Number;  // the current value for the attack envelope
         protected var _decay                    :int;     // decay, creates wave length
+        protected var _decayStart               :int;     // sample position where the decay is decreased
+        protected var _decayIncr                :Number;  // step value for decay envelope operations
         protected var _release                  :Number;  // release time ( 1 = entire sample length )
         protected var _releaseStart             :int;     // sample position where the release envelope starts
         protected var _releaseIncr              :Number;  // step value for release envelope operations ( per sample )
@@ -308,7 +311,7 @@ package nl.igorski.lib.audio.generators.waveforms.base
 
         public function get decay():int
         {
-            return Math.round( _decay / DECAY_MULTIPLIER );
+            return MathTool.roundPos( _decay / DECAY_MULTIPLIER );
         }
 
         public function set decay( value:int ):void
@@ -316,7 +319,16 @@ package nl.igorski.lib.audio.generators.waveforms.base
             if ( isNaN( value ) || value == 0 )
                 value = 105;
 
-            _decay = Math.round( value * DECAY_MULTIPLIER );
+            _decay      = MathTool.roundPos( value * DECAY_MULTIPLIER );
+
+            // some waveforms ( sine, triangle ) can have popping occurring
+            // at the end when the sample is cut off at an unfortunate point
+            // we prevent this pop occurring by decreasing the decay a few
+            // samples before the end of the current waveform
+
+            var fadeLength:int = 4096;
+            _decayStart        = _sampleLength - fadeLength;
+            _decayIncr         = MathTool.roundPos( _decay / fadeLength );
         }
 
         public function get release():Number
