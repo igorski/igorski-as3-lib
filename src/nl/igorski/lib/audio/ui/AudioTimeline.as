@@ -43,8 +43,8 @@ package nl.igorski.lib.audio.ui
         protected var _curOctave        :int = 3;
         protected var tf                :*;
 
-        protected var up                :Sprite;
-        protected var down              :Sprite;
+        protected var BTNup             :Sprite;
+        protected var BTNdown           :Sprite;
         public var onScreen             :Boolean = true;
 
         protected var _container        :Sprite;
@@ -67,6 +67,8 @@ package nl.igorski.lib.audio.ui
 
             // attach this note timeline to the requested voice residing in the sequencer class
             AudioSequencer.attachTimeline( voice, this );
+            AudioSequencer.STEPS_PER_BAR = STEPS;
+
             init();
         }
 
@@ -91,11 +93,6 @@ package nl.igorski.lib.audio.ui
         public function get voice():int
         {
             return _voice;
-        }
-        
-        public function get blocks():Vector.<IGridBlock>
-        {
-            return pitchBlocks.concat();
         }
         
         public function createBlocks():void
@@ -162,7 +159,6 @@ package nl.igorski.lib.audio.ui
 
                 delete frequencies[ position ][ frequency ];
             }
-
             // create value object for the new audio event
             var vo:VOAudioEvent = new VOAudioEvent({ frequency: frequency,
                                                      length:    length,
@@ -182,8 +178,7 @@ package nl.igorski.lib.audio.ui
          */
         public function clearNote( position:int = 0, frequency:Number = 0 ):void
         {
-            if ( frequencies[ position ][ frequency] != null )
-            {
+            if ( frequencies[ position ][ frequency] != null )            {
                 var vo:VOAudioEvent = VOAudioEvent( frequencies[ position ][ frequency ] );
 
                 if ( vo.sample != null )
@@ -347,11 +342,16 @@ package nl.igorski.lib.audio.ui
         //_________________________________________________________________________________________________________
         //                                                                        P R O T E C T E D   M E T H O D S
 
+        protected function get blocks():Vector.<IGridBlock>
+        {
+            return pitchBlocks.concat();
+        }
+
         protected function handlePagination( e:MouseEvent ):void
         {
             switch( e.target )
             {
-                case down:
+                case BTNdown:
                     if ( _curOctave > 1 )
                     {
                         showNext( false );
@@ -359,7 +359,7 @@ package nl.igorski.lib.audio.ui
                         --_curOctave;
                     }
                     break;
-                case up:
+                case BTNup:
                     if ( _curOctave < _octaves )
                     {
                         showNext( true );
@@ -404,22 +404,22 @@ package nl.igorski.lib.audio.ui
         
         protected function drawScrollButtons():void
         {
-            up   = new Sprite();
-            down = new Sprite();
+            BTNup   = new Sprite();
+            BTNdown = new Sprite();
 
-            up.graphics.beginFill( 0xFF0000, 1 );
-            up.graphics.drawCircle( 465, _container.y + 10, 10 );
-            up.graphics.endFill();
+            BTNup.graphics.beginFill( 0xFF0000, 1 );
+            BTNup.graphics.drawCircle( 465, _container.y + 10, 10 );
+            BTNup.graphics.endFill();
 
-            down.graphics.beginFill( 0xFF0000, 1 );
-            down.graphics.drawCircle( 465, 320, 10 );
-            down.graphics.endFill();
+            BTNdown.graphics.beginFill( 0xFF0000, 1 );
+            BTNdown.graphics.drawCircle( 465, 320, 10 );
+            BTNdown.graphics.endFill();
 
-            down.buttonMode =
-            up.buttonMode   = true;
+            BTNdown.buttonMode =
+            BTNup.buttonMode   = true;
 
-            addChild( up );
-            addChild( down);
+            addChild( BTNup );
+            addChild( BTNdown);
         }
         
         /**
@@ -446,6 +446,9 @@ package nl.igorski.lib.audio.ui
                     b.wakeUp();
             }
             showPitchText( next );
+
+            BTNup.visible = !( next == _octaves );
+            BTNdown.visible = !( next == 1 );
         }
         
         /**
@@ -483,8 +486,8 @@ package nl.igorski.lib.audio.ui
             AudioTimelineManager.INSTANCE.addEventListener( AudioTimelineEvent.LOCK,   handleLock );
             AudioTimelineManager.INSTANCE.addEventListener( AudioTimelineEvent.UNLOCK, handleUnlock );
 
-            down.addEventListener( MouseEvent.CLICK, handlePagination );
-            up.addEventListener( MouseEvent.CLICK, handlePagination );
+            BTNdown.addEventListener( MouseEvent.CLICK, handlePagination );
+            BTNup.addEventListener( MouseEvent.CLICK, handlePagination );
         }
 
         protected function removeListeners():void
@@ -492,8 +495,8 @@ package nl.igorski.lib.audio.ui
             AudioTimelineManager.INSTANCE.removeEventListener( AudioTimelineEvent.LOCK,   handleLock );
             AudioTimelineManager.INSTANCE.removeEventListener( AudioTimelineEvent.UNLOCK, handleUnlock );
 
-            down.removeEventListener( MouseEvent.CLICK, handlePagination );
-            up.removeEventListener( MouseEvent.CLICK, handlePagination );
+            BTNdown.removeEventListener( MouseEvent.CLICK, handlePagination );
+            BTNup.removeEventListener( MouseEvent.CLICK, handlePagination );
         }
     }
 }

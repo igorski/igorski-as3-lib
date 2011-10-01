@@ -11,6 +11,7 @@ package nl.igorski.lib.audio.core
     import nl.igorski.lib.audio.core.interfaces.IBusModifier;
     import nl.igorski.lib.audio.core.interfaces.IModifier;
     import nl.igorski.lib.audio.core.interfaces.IModulator;
+    import nl.igorski.lib.audio.core.interfaces.IVoice;
     import nl.igorski.lib.audio.generators.BufferGenerator;
     import nl.igorski.lib.audio.generators.Synthesizer;
     import nl.igorski.lib.audio.generators.waveforms.base.BaseWaveForm;
@@ -18,7 +19,7 @@ package nl.igorski.lib.audio.core
     import nl.igorski.lib.audio.ui.interfaces.IAudioTimeline;
     import nl.igorski.lib.utils.MathTool;
 
-    public final class AudioSequencer extends EventDispatcher
+    public class AudioSequencer extends EventDispatcher
     {
         /**
          * Created by IntelliJ IDEA.
@@ -27,18 +28,10 @@ package nl.igorski.lib.audio.core
          * Time: 14:43:22
          *
          * Synthesizer is a singleton class as multiple instances each operating in their own buffer
-         * create a massive glitchfest, you can instantiate more voices for multi-timbral usage
-         *
-         * BUFFER_SIZE  : the lower the buffer, the lower the latency ( perceived delay between events )
-         *                when set too low, crack and pops and other non-nice artifacts occur in the audio
-         *                the higher the buffer, the higher the latency, but cleans up instability issues
-         *
-         * SAMPLE_RATE  : in Hz, default ( CD player and in human hearing range according to Nyquist theory = 44.1 kHz )
-         *
-         * TEMPO        : in beats per minute
-         */
+         * create a massive glitchfest, you can instantiate more voices for multi-timbral usage */
+
         private static var INSTANCE         :AudioSequencer;
-        
+
         public static var BUFFER_SIZE       :int;
         public static var SAMPLE_RATE       :int = 44100;
         public static var TEMPO             :Number;
@@ -47,7 +40,7 @@ package nl.igorski.lib.audio.core
         public static var BYTES_PER_BAR     :int;
         public static var BYTES_PER_TICK    :int;
         public static var AMOUNT_OF_VOICES  :int = 3;
-        public static var AMOUNT_OF_STEPS   :int = 16;
+        public static var STEPS_PER_BAR     :int = 16;
 
         private var _sound                  :Sound;
         private var _soundChannel           :SoundChannel;
@@ -59,20 +52,30 @@ package nl.igorski.lib.audio.core
         private var _lastBuffer             :int;
         private var _position               :int;
         private var _stepPosition           :int = 0;
-        
-        private var _synthesizer            :Synthesizer;
-        private var _voices                 :Vector.<BaseWaveForm>;
-        
-        // bus modifiers ( work on the sum of all sounds ( i.e. "master" ))
-        private var _busModifiers           :Array;
-        private var _timelines              :Vector.<IAudioTimeline>;
-        
-        private var _isPlaying              :Boolean;
-        private var _doStop                 :Boolean;
+
+        // you can override this with custom synthesizers
+        protected static const SYNTHESIZER_CLASS    :Class = Synthesizer;
+        private var _synthesizer                    :IVoice;
+        private var _voices                         :Vector.<BaseWaveForm>;
+
+        // bus modifiers ( work on the sum of all sounds ( i.e. a master channel insert ))
+        private var _busModifiers                   :Array;
+        private var _timelines                      :Vector.<IAudioTimeline>;
+
+        private var _isPlaying                      :Boolean;
+        private var _doStop                         :Boolean;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
+        /**
+         * @param bufferSize        the lower the buffer, the lower the latency ( perceived delay between events )
+         *                          when set too low, crack and pops and other non-nice artifacts occur in the audio
+         *                          the higher the buffer, the higher the latency, but cleans up instability issues
+         * @param aTempo            in beats per minute
+         * @param sampleRate        in Hz, defaults to 44.1 kHz ( CD audio standard and max. in human hearing range according to Nyquist theory )
+         * @param bytesPerSample    the amount of bytes in each sample grain
+         */
         public function AudioSequencer( bufferSize:int = 2048, aTempo:Number = 120, sampleRate:Number = 44100, bytesPerSample:int = 8 )
         {
             if ( INSTANCE == null )
@@ -99,11 +102,39 @@ package nl.igorski.lib.audio.core
             return INSTANCE;
         }
 
+        public function init( createObjects:Boolean = true ): void
+        {
+            if ( createObjects )
+            {
+                // create a synthesizer for audio output
+                _synthesizer    = new SYNTHESIZER_CLASS( AMOUNT_OF_VOICES );
+
+                // create a voice vector for multiple wave shapes, note we don't set
+                // it to a fixed AMOUNT_OF_VOICES width as we like to be able to add/remove these
+                _voices         = new Vector.<BaseWaveForm>();
+
+                /*
+                 * create a timeline vector for multiple sequencers
+                 * ( in case you need multiple sequencers for multiple instruments ) */
+
+                 _timelines     = new Vector.<IAudioTimeline>();
+
+                // create a bus modifier array for attaching FX to the master bus
+                _busModifiers   = [];
+
+                invalidateCache();
+            }
+            _buffer       = BufferGenerator.generate();
+            _position     = 0.0;
+            _stepPosition = 0;
+            _sound        = new Sound();
+        }
+
         public static function start():void
         {
             if ( INSTANCE._isPlaying )
                 return;
-            
+
             INSTANCE._sound.addEventListener( SampleDataEvent.SAMPLE_DATA, INSTANCE.processAudio );
 
             // add events at the first sequencer position
@@ -141,13 +172,13 @@ package nl.igorski.lib.audio.core
         {
             INSTANCE._doStop = true;
         }
-        
+
         public static function reset():void
         {
             if ( INSTANCE._isPlaying )
                 stop();
 
-            INSTANCE._synthesizer  = new Synthesizer( AMOUNT_OF_VOICES );
+            INSTANCE._synthesizer  = new SYNTHESIZER_CLASS( AMOUNT_OF_VOICES );
             INSTANCE._busModifiers = [];
             INSTANCE.init( false );
 
@@ -163,7 +194,7 @@ package nl.igorski.lib.audio.core
             {
                 var VOs:Vector.<VOAudioEvent> = new Vector.<VOAudioEvent>();
 
-                for ( var i:int = 0; i < AMOUNT_OF_STEPS; ++i ) {
+                for ( var i:int = 0; i < STEPS_PER_BAR; ++i ) {
                     for each ( var vo:VOAudioEvent in tl.getFrequencies( i ))
                         VOs.push( vo );
                 }
@@ -171,7 +202,7 @@ package nl.igorski.lib.audio.core
             }
             INSTANCE._synthesizer.presynthesize( tlVO );
         }
-        
+
         public static function clearBus():void
         {
             INSTANCE._busModifiers = [];
@@ -185,6 +216,11 @@ package nl.igorski.lib.audio.core
         public static function attachVoice( num:int, voice:BaseWaveForm ):void
         {
             INSTANCE._voices[ num ] = voice;
+
+            if ( INSTANCE._voices.length > AMOUNT_OF_VOICES )
+                ++AMOUNT_OF_VOICES;
+            // TODO: i have been fucking with this... restore inside if statement?? check w/ 16 step mode
+            INSTANCE._synthesizer.addVoices( AMOUNT_OF_VOICES );
         }
 
         /**
@@ -194,6 +230,7 @@ package nl.igorski.lib.audio.core
         public static function removeVoice( index:int = 0 ):void
         {
             INSTANCE._voices.splice( index, 1 );
+            --AMOUNT_OF_VOICES;
         }
 
         /**
@@ -205,6 +242,7 @@ package nl.igorski.lib.audio.core
         {
             if ( index < INSTANCE._voices.length )
                 return INSTANCE._voices[ index ];
+
             return null;
         }
 
@@ -243,7 +281,7 @@ package nl.igorski.lib.audio.core
         {
             return INSTANCE._busModifiers[ index ];
         }
-        
+
         /**
          * returns all parameters of a voice's modifier list
          * @param voice : index of the voice whose modifiers are requested */
@@ -289,17 +327,17 @@ package nl.igorski.lib.audio.core
             }
             return out;
         }
-        
+
         /**
          * returns all parameters of the bus's modifier list
          */
         public static function getBusModifierParameters():Array
         {
             var modifiers:Array = INSTANCE._busModifiers;
-            
+
             if ( modifiers == null )
                 return null;
-                
+
             var out:Array = [];
             for each( var m:IBusModifier in modifiers )
             {
@@ -308,7 +346,7 @@ package nl.igorski.lib.audio.core
             }
             return out;
         }
-        
+
         //_________________________________________________________________________________________________________
         //                                                                        G E T T E R S   /   S E T T E R S
 
@@ -321,12 +359,12 @@ package nl.igorski.lib.audio.core
         {
             return INSTANCE._stepPosition;
         }
-  
+
         public static function get latency():Number
         {
             return INSTANCE._latency;
         }
-         
+
         public static function get isPlaying():Boolean
         {
             return INSTANCE._isPlaying;
@@ -336,7 +374,7 @@ package nl.igorski.lib.audio.core
         {
             return INSTANCE._tempo;
         }
-        
+
         public static function set tempo( value:Number ):void
         {
             INSTANCE._tempo     = value;
@@ -350,12 +388,12 @@ package nl.igorski.lib.audio.core
             if ( INSTANCE._synthesizer != null )
                 invalidateCache();
         }
-        
+
         public static function get volume():Number
         {
             return INSTANCE._volume;
         }
-        
+
         public static function set volume( value:Number ):void
         {
             INSTANCE._volume = value;
@@ -391,13 +429,13 @@ package nl.igorski.lib.audio.core
         {
             if( _soundChannel != null )
                 _latency = ( e.position * 2.267573696145e-02 ) - _soundChannel.position;
-                
+
             //var to:Number = _position + BUFFER_SIZE * ( tempo * 9.448223733938e-8 );
             //_lastBuffer = getTimer();
 
             clearBuffer();
             _synthesizer.synthesize( _buffer );
-                
+
             var l:Vector.<Number> = _buffer[0];
             var r:Vector.<Number> = _buffer[1];
 
@@ -408,7 +446,7 @@ package nl.igorski.lib.audio.core
                 if ( _position % BYTES_PER_TICK == 0 )
                 {
                     ++_stepPosition;
-                    if ( _stepPosition == AMOUNT_OF_STEPS )
+                    if ( _stepPosition == STEPS_PER_BAR )
                         _stepPosition = 0;
 
                     handleTick();
@@ -437,33 +475,6 @@ package nl.igorski.lib.audio.core
 
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S
-
-        private function init( createObjects:Boolean = true ): void
-        {
-            if ( createObjects )
-            {
-                // create a synthesizer for audio output
-                _synthesizer    = new Synthesizer( AMOUNT_OF_VOICES );
-
-                // create a voice vector for multiple wave shapes
-                _voices         = new Vector.<BaseWaveForm>();
-
-                /*
-                 * create a timeline vector for multiple sequencers
-                 * ( in case you need multiple sequencers for multiple instruments ) */
-
-                 _timelines          = new Vector.<IAudioTimeline>();
-
-                // create a bus modifier array for attaching FX to the master bus
-                _busModifiers   = [];
-
-                invalidateCache();
-            }
-            _buffer       = BufferGenerator.generate();
-            _position     = 0.0;
-            _stepPosition = 0;
-            _sound        = new Sound();
-        }
 
         /*
          * clears a currently cached audio buffer in the Synthesizer class

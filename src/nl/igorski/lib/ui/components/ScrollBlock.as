@@ -221,8 +221,8 @@
 
             contentstarty = scrollContent.y;
 
-            minY = 0;
-            maxY = background.height - ruler.height;
+           // minY = 0;
+           // maxY = background.height - ruler.height;
 
             checkScroll();
         }
@@ -260,7 +260,7 @@
                 var targetY:Number = ruler.y - ( e.delta * 3 );
 
                 if ( targetY > maxY )
-                    targetY = maxY;
+                    targetY = maxY - .5;
                 else if ( targetY < minY )
                     targetY = minY;
 

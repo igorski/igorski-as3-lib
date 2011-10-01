@@ -1,11 +1,9 @@
 ﻿package nl.igorski.lib.utils
 {
-import flash.external.ExternalInterface;
-
-/**
-     * a quick way to track pages / events in a HTML embedded
-     * application using a JavaScript wrapper ( used for try / catching
-     * pushing of _gaq methods in the JavaScript / HTML DOM )
+    /**
+     * a quick way to track pages / events in a HTML embedded application, note
+     * that the asynchronous ( _gaq ) tracker by Google should be embedded in
+     * the same HTML page containing the SWF application
      *
      * @author Igor Zinken
      */
@@ -23,16 +21,17 @@ import flash.external.ExternalInterface;
         //                                                                              P U B L I C   M E T H O D S
 
         /**
-         * tracking a page through Google Analytics
+         * track a page visit through Google Analytics
          * @param page String identifier of the page to track */
 
         public static function track( page:String = "/" ):void
         {
-            JavaScript.call( "Analytics.trackPage", page );
+            JavaScript.call( "_gaq.push(['_trackPageview', '" + page + "'])");
         }
 
         /**
-         * tracking an event through Google Analytics
+         * track an event through Google Analytics
+         *
          * @param category the name you supply for the group of objects you want to track
          * @param action a string that is uniquely paired with each category, and commonly
          *        used to define the type of user interaction for the web object.
@@ -41,15 +40,14 @@ import flash.external.ExternalInterface;
 
         public static function event( category:String = "", action:String = "", optLabel:String = null, optValue:int = -1 ):void
         {
-            if ( !ExternalInterface.available )
-                return;
-
             if ( optLabel == null )
-                ExternalInterface.call( "Analytics.trackEvent", category, action );
+                JavaScript.call( "_gaq.push(['_trackEvent', '" + category + "', '" + action + "'])");
+
             else if ( optValue == -1 )
-                ExternalInterface.call( "Analytics.trackEvent", category, action, optLabel );
+                JavaScript.call( "_gaq.push(['_trackEvent', '" + category + "', '" + action + "', '" + optLabel + "'])");
+
             else
-                ExternalInterface.call( "Analytics.trackEvent", category, action, optLabel, optValue );
+                JavaScript.call( "_gaq.push(['_trackEvent', '" + category + "', '" + action + "', '" + optLabel + "', '" + optValue + "'])");
         }
 
         //_________________________________________________________________________________________________________

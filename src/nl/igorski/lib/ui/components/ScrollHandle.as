@@ -38,8 +38,9 @@
         {
             with( graphics )
             {
+                lineStyle( 2, 0xFFFFFF );
                 beginFill( 0x000000, 1 );
-                drawRect( 0, 0, 10, 50 );
+                drawRoundRect( 1, 0, 12, 75, 10 );
                 endFill();
             }
         }

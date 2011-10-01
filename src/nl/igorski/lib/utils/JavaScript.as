@@ -20,12 +20,23 @@
         //_________________________________________________________________________________________________________
         //                                                                              P U B L I C   M E T H O D S
 
+        /**
+         * calls a JavaScript function and passes optional arguments
+         *
+         * @param javascriptFunction String name of the function embedded in the HTML page
+         * @param functionArguments  several comma-separated values to be passed to the function */
+
         public static function call( javascriptFunction:String, ...functionArguments ):void
         {
             if ( ExternalInterface.available )
                 ExternalInterface.call( javascriptFunction, functionArguments );
         }
 
+        /**
+         * call a function and retrieve it's return value
+         *
+         * @param  javascriptFunction String name of the function embedded in the HTML page
+         */
         public static function get( javascriptFunction:String ):*
         {
             if ( ExternalInterface.available )

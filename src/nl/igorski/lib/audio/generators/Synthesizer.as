@@ -6,7 +6,7 @@ package nl.igorski.lib.audio.generators
     import nl.igorski.lib.audio.model.vo.VOAudioEvent;
     import nl.igorski.lib.audio.ui.interfaces.IAudioTimeline;
 
-    public final class Synthesizer implements IVoice
+    public class Synthesizer implements IVoice
     {    
         /**
          * Created by IntelliJ IDEA.
@@ -14,15 +14,14 @@ package nl.igorski.lib.audio.generators
          * Date: 20-dec-2010
          * Time: 14:29:33 */
 
+        protected var _voiceSamples             :Vector.<Vector.<VOAudioEvent>>;
+        protected var _cachedVoices             :Vector.<AudioCache>;
+        protected var _invalidate               :Vector.<Object>;
 
-        private var _voiceSamples           :Vector.<Vector.<VOAudioEvent>>;
-        private var _cachedVoices           :Vector.<AudioCache>;
-        private var _invalidate             :Vector.<Object>;
+        protected var _oldCaches                :Vector.<AudioCache>;
+        protected var _oldCacheReadSteps        :Vector.<int>;
 
-        private var _oldCaches              :Vector.<AudioCache>;
-        private var _oldCacheReadSteps      :Vector.<int>;
-
-        private const CACHE_RELEASE_TIME    :int = 4;
+        private const CACHE_RELEASE_TIME        :int = 8;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
@@ -30,19 +29,18 @@ package nl.igorski.lib.audio.generators
         {
             // create a sample Vector for each instrument / sequencer timeline
             // this is where the notes for synthesis are queued
-            _voiceSamples = new Vector.<Vector.<VOAudioEvent>>( voiceAmount, true );
-            
-            for ( var i:int = 0; i < _voiceSamples.length; ++i )
-                _voiceSamples[i] = new Vector.<VOAudioEvent>();
+            _voiceSamples = new Vector.<Vector.<VOAudioEvent>>();
 
             // create buffers for the caching of each voice's samples as we don't
             // re-synthesize a non-modified loop but read it from a cached buffer
-            _cachedVoices = new Vector.<AudioCache>( _voiceSamples.length, true );
+            _cachedVoices = new Vector.<AudioCache>();
 
             // caches for "old" ( rather: just-invalidated ) audio to be read from
             // during the (re)building of the new caches
-            _oldCaches = new Vector.<AudioCache>( _voiceSamples.length,  true );
-            _oldCacheReadSteps = new Vector.<int>( _voiceSamples.length, true );
+            _oldCaches = new Vector.<AudioCache>();
+            _oldCacheReadSteps = new Vector.<int>();
+            
+            addVoices( voiceAmount );
         }
         
         //_________________________________________________________________________________________________________
@@ -58,9 +56,8 @@ package nl.igorski.lib.audio.generators
             // ( no need to re-synthesize unless you want to unnecessarily hog CPU cycles )
 
             if ( _cachedVoices != null ) {
-                if ( _cachedVoices[ voiceNum ] != null && _cachedVoices[ voiceNum ].valid ) {
+                if ( _cachedVoices[ voiceNum ] != null && _cachedVoices[ voiceNum ].valid )
                     return;
-                }
             }
 
             // we look if we're not attempting to push a ( still-caching ) VO into the samples list
@@ -80,6 +77,24 @@ package nl.igorski.lib.audio.generators
         }
 
         /**
+         * in case of dynamic addition of voices, you can increase the size of the
+         * cache Vectors for including the voices in the current synthesizer
+         *
+         * @param totalLength, the total amount of voices required, only the difference
+         *        between the old and new length will be added, existing indices remain as is
+         */
+        public function addVoices( totalLength:int = 1 ):void
+        {
+            while ( _voiceSamples.length < totalLength )
+            {
+                _voiceSamples.push( new Vector.<VOAudioEvent>());
+                _cachedVoices.push( new AudioCache( AudioSequencer.BYTES_PER_BAR, false ));
+                _oldCaches.push( new AudioCache( AudioSequencer.BYTES_PER_BAR, false ));
+                _oldCacheReadSteps.push( 0 );
+            }
+        }
+
+        /**
          * the synthesize function processes the added events and outputs these in
          * the current audio stream, so we can actually HEAR things
          *  
@@ -88,7 +103,7 @@ package nl.igorski.lib.audio.generators
          *        for generating output in the buffer
          */
 
-        public function synthesize( buffer:Vector.<Vector.<Number>> ):void
+        public final function synthesize( buffer:Vector.<Vector.<Number>> ):void
         {
             var audioBuffer:Vector.<Vector.<Number>> = BufferGenerator.generate();
             var bufferSize :int = AudioSequencer.BUFFER_SIZE;
@@ -214,7 +229,7 @@ package nl.igorski.lib.audio.generators
                             // sample's buffer not full ? start caching the sample
                             // unless we're sequentially caching from the BulkCacher
                             else {
-                                if ( !vo.isCaching && !BulkCacher.sequenced )
+                                if ( !vo.isCaching/* && !BulkCacher.sequenced*/ )
                                     vo.cache();
                             }
                         }
@@ -230,7 +245,7 @@ package nl.igorski.lib.audio.generators
                         && getInvalidationDataForVoice( i ) == null )
                     {
                         theCache.valid = true;
-
+                        trace( "CACHE " + i + "  VALID TRUE" );
                         if ( _oldCaches[i] != null ) {
                             _oldCaches[i].destroy();
                             _oldCaches[i] = null;
@@ -250,11 +265,11 @@ package nl.igorski.lib.audio.generators
              * write it into the currently streaming SampleDataEvent
              * this is what creates the actual output into the AudioSequencer */
 
+            var l:Vector.<Number> = buffer[0];
+            var r:Vector.<Number> = buffer[1];
+
             for ( i = 0, j = audioBuffer[0].length; i < j; ++i )
             {
-                var l:Vector.<Number> = buffer[0];
-                var r:Vector.<Number> = buffer[1];
-
                 l[i] += audioBuffer[0][i];
                 r[i] += audioBuffer[1][i];
             }
@@ -308,10 +323,10 @@ package nl.igorski.lib.audio.generators
             // we keep track of the caches to invalidate in the _invalidate Vector
             // we actually clear them when the synthesize function restarts
             // to prevent reading from cleared buffers while synthesizing!
-            
+
             if ( _invalidate == null )
-                _invalidate = new Vector.<Object>();
-            
+                _invalidate = new <Object>[];
+
             // voice index specified ? invalidate only for that voice
             if ( aVoice > -1 )
             {
@@ -343,20 +358,17 @@ package nl.igorski.lib.audio.generators
         //_________________________________________________________________________________________________________
         //                                                                        P R O T E C T E D   M E T H O D S
 
-        //_________________________________________________________________________________________________________
-        //                                                                            P R I V A T E   M E T H O D S
-
         /*
          * quick lookup if current voice is queued in the invalidation Vector
          * returns Object w/ invalidation properties when true, returns null
          * when not in invalidation Vector
          */
-        private function getInvalidationDataForVoice( voice:int ):Object
+        protected function getInvalidationDataForVoice( voice:int ):Object
         {
             if ( _invalidate == null )
                 return null;
 
-            var output  :Object;
+            var output:Object;
 
             for ( var i:int = 0; i < _invalidate.length; ++i )
             {
@@ -372,7 +384,7 @@ package nl.igorski.lib.audio.generators
          * actual invalidation of cache and clearing of cached buffers
          * called by synthesize method
          */
-        private function clearCache( voice:int ):void
+        protected function clearCache( voice:int ):void
         {
             var invalidation:Object = getInvalidationDataForVoice( voice );
 
@@ -426,12 +438,15 @@ package nl.igorski.lib.audio.generators
          * invalidate the cached VOAudioEvents
          * and immediately restart caching them w/ their new properties
          */
-        private function invalidateCachedAudioEvents( num:int, recache:Boolean ):void
+        protected function invalidateCachedAudioEvents( num:int, recache:Boolean ):void
         {
             var timeline:IAudioTimeline = AudioSequencer.retrieveTimeline( num );
 
             if ( timeline != null )
                 timeline.resetNotes( recache );
         }
+
+        //_________________________________________________________________________________________________________
+        //                                                                            P R I V A T E   M E T H O D S
     }
 }

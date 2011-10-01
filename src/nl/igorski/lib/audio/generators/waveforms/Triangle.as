@@ -26,7 +26,7 @@ package nl.igorski.lib.audio.generators.waveforms
         //_________________________________________________________________________________________________________
         //                                                                                              P U B L I C
 
-        override public function generate( buffer: Vector.<Vector.<Number>> ):void
+        override public function generate( buffer: Vector.<Vector.<Number>>, pointer:int = -1 ):void
         {
             var amplitude   :Number;
             var env         :Number;
@@ -38,7 +38,7 @@ package nl.igorski.lib.audio.generators.waveforms
             var l           :Vector.<Number> = buffer[0];
             var r           :Vector.<Number> = buffer[1];
 
-            for( var i:int = 0, j:int = _bufferSize; i < j; ++i )
+            for( var i:int = ( pointer > -1 ) ? pointer : 0, j:int = ( pointer > -1 ) ? pointer + 1 : _bufferSize; i < j; ++i )
             {
                 env = _decay * ENVELOPE_MULTIPLIER;
 
@@ -114,7 +114,7 @@ package nl.igorski.lib.audio.generators.waveforms
         
         //_________________________________________________________________________________________________________
         //                                                                        G E T T E R S   /   S E T T E R S
-
+        /*
         override public function set volume( value:Number ):void
         {
             super.volume = value;
@@ -123,6 +123,7 @@ package nl.igorski.lib.audio.generators.waveforms
             _volumeL *= VOLUME_MULTIPLIER;
             _volumeR *= VOLUME_MULTIPLIER;
         }
+        */
 
         //_________________________________________________________________________________________________________
         //                                                                              E V E N T   H A N D L E R S

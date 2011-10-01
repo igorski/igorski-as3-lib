@@ -42,8 +42,9 @@
         {
             with( graphics )
             {
-                beginFill( 0xFFFFFF );
-                drawRect( 0, 0, 10, _height );
+               // lineStyle( 2, 0x000000);
+                beginFill( 0x666666 );
+                drawRoundRect( 0, 0, 15, _height, 10 );
                 endFill();
             }
         }
