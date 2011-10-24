@@ -1,5 +1,7 @@
 package nl.igorski.lib.audio.definitions
 {
+    import nl.igorski.lib.utils.MathTool;
+
     public class Pitch
     {
         /**
@@ -44,17 +46,22 @@ package nl.igorski.lib.audio.definitions
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function Pitch() {
+        public function Pitch()
+        {
+            throw new Error( "cannot instantiate Pitch" );
         }
 
         //_________________________________________________________________________________________________________
         //                                                                                              P U B L I C
 
         /**
-         * @param note - musical note to return ( A, B, C, D, E, F, G with
-         *               possible enharmonic notes ( 'b' meaning 'flat', '#' meaning 'sharp' )
-         *               NOTE: flats are CASE sensitive ( to prevent seeing the note 'B' instead of 'b' )
-         * @param octave - the octave to return ( acceptated range 0 - 9 )
+         * generates the frequency in Hz corresponding to the given note at the given octave
+         *
+         * @param aNote   - musical note to return ( A, B, C, D, E, F, G with
+         *                  possible enharmonic notes ( 'b' meaning 'flat', '#' meaning 'sharp' )
+         *                  NOTE: flats are CASE sensitive ( to prevent seeing the note 'B' instead of 'b' )
+         * @param aOctave - the octave to return ( accepted range 0 - 9 )
+         *
          * @return Number containing exact frequency in Hz for requested note
          */
         public static function note( aNote:String = 'C', aOctave:int = 4 ):Number
@@ -95,6 +102,48 @@ package nl.igorski.lib.audio.definitions
                 }
                 return freq;
             }
+        }
+
+        /**
+         * takes a frequency in Hz and returns the pitch, octave and cents off the perfect center
+         *
+         * @param frequency
+         * @return Object width parameters note, octave and cents
+         */
+        public static function pitchByFrequency( frequency:Number ):Object
+        {
+            var theNote     :String;
+
+            var lnote       :Number = ( Math.log ( frequency ) - Math.log( 261.626 )) / Math.log( 2 ) + 4.0;
+            var oct         :int    = MathTool.floor( lnote );
+            var theCents    :Number = 1200 * ( lnote - oct );
+
+            var note_table  :String = "C C#D D#E F F#G G#A A#B";
+            var offset      :Number = 50.0;
+            var x           :int = 2;
+
+            if ( theCents < 50 ) {
+                theNote = "C ";
+            }
+            else if ( theCents >= 1150 ) {
+                theNote = "C ";
+                theCents -= 1200;
+                ++oct;
+            }
+            else {
+                for ( var j:int = 1; j <= 11 ; ++j )
+                {
+                    if ( theCents >= offset && theCents < ( offset + 100 ))
+                    {
+                        theNote = note_table.charAt( x ) + note_table.charAt( x + 1 );
+                        theCents -= ( j * 100 );
+                        break;
+                    }
+                    offset += 100;
+                    x += 2;
+                }
+            }
+            return { note: theNote, octave: oct, cents: theCents };
         }
 
         //_________________________________________________________________________________________________________

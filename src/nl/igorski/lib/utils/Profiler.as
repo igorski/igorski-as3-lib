@@ -12,7 +12,7 @@ package nl.igorski.lib.utils
      */
     public final class Profiler 
     {
-        private var startTime:Number;
+        private var startTime   :int;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
@@ -43,7 +43,7 @@ package nl.igorski.lib.utils
          * set the "end point" for the test, and immediately
          * return the time difference between end and start points
          */
-        public function stop():Number
+        public function stop():int
         {
             return ( getTimer() - startTime );
         }

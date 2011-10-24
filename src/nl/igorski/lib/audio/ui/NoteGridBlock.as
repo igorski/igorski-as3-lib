@@ -332,7 +332,7 @@ package nl.igorski.lib.audio.ui
                 // set note length accordingly to icon length ( or rather: the amount of gridblocks it overlaps )
                 _length = icon.width / WIDTH;
             }
-            _grid.setNote( _position, frequency, length );
+            _grid.setNote( _position, frequency, length );  // TODO: perhaps false only?
         }
         
         private function addListeners():void

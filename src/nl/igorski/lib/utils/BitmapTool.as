@@ -2,6 +2,7 @@ package nl.igorski.lib.utils
 {
     import flash.display.Bitmap;
     import flash.display.BitmapData;
+    import flash.display.DisplayObject;
     import flash.display.PixelSnapping;
     import flash.geom.ColorTransform;
     import flash.geom.Matrix;
@@ -110,41 +111,60 @@ package nl.igorski.lib.utils
 
         /**
         * Returns horizontally-mirrored instance of supplied BitmapData instance.
-        *
-        * @param    bmp : BitmapData            BitmapData instance to flip horizontally.
+        * @param  {BitmapData} bmp bitmap image to flip horizontally
+        * @return {BitmapData}
         */
-        public static function flipHoriz( bmp:BitmapData ):BitmapData
+        public static function flipHorizontally( bmp:BitmapData ):BitmapData
         {
-            //transform.
             var mat:Matrix = new Matrix();
-            mat.a = -1;
-            mat.tx = bmp.width;
-            //copy.
-            var flip:BitmapData = new BitmapData(bmp.width, bmp.height, TRANSPARENT, COLOR);
-            flip.draw(bmp, mat);
-            //dispose bitmapdata instance.
+            mat.a          = -1;
+            mat.tx         = bmp.width;
+
+            var flip:BitmapData = new BitmapData( bmp.width, bmp.height, TRANSPARENT, COLOR );
+            flip.draw( bmp, mat );
+
             bmp.dispose();
-            //return.
+
             return flip;
         }
 
         /**
         * Returns vertically-mirrored instance of supplied BitmapData instance.
-        * @param    bmp : BitmapData            BitmapData instance to flip vertically.
+        * @param  {BitmapData} bmp bitmap image to flip vertically
+        * @return {BitmapData}
         */
-        public static function flipVert( bmp:BitmapData ):BitmapData
+        public static function flipVertically( bmp:BitmapData ):BitmapData
         {
-            //transform.
             var mat:Matrix = new Matrix();
-            mat.d = -1;
+            mat.d  = -1;
             mat.ty = bmp.height;
-            //copy.
-            var flip:BitmapData = new BitmapData(bmp.width, bmp.height, TRANSPARENT, COLOR);
-            flip.draw(bmp, mat);
-            //dispose bitmapdata instance.
+
+            var flip:BitmapData = new BitmapData( bmp.width, bmp.height, TRANSPARENT, COLOR );
+            flip.draw( bmp, mat );
+
             bmp.dispose();
-            //return.
+
             return flip;
+        }
+
+        /**
+         * Returns the bounding area of visible pixels in a transparent image
+         * @param  {DisplayObject} source DisplayObject
+         * @return {Rectangle} w/ bounding box area
+         */
+        public static function getVisibleBounds( source:DisplayObject ):Rectangle
+        {
+            var matrix:Matrix = new Matrix();
+            matrix.tx         = -source.getBounds( null ).x;
+            matrix.ty         = -source.getBounds( null ).y;
+
+            var data:BitmapData = new BitmapData( source.width, source.height, true, 0x00000000 );
+            data.draw( source, matrix );
+
+            var bounds:Rectangle = data.getColorBoundsRect( 0xFFFFFFFF, 0x000000, false );
+            data.dispose();
+
+            return bounds;
         }
 
         //_________________________________________________________________________________________________________

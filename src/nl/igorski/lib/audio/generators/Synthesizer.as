@@ -23,6 +23,9 @@ package nl.igorski.lib.audio.generators
 
         private const CACHE_RELEASE_TIME        :int = 8;
 
+        /* temporary buffer used for writing in each cycle */
+        private var _audioBuffer                :Vector.<Vector.<Number>>;
+
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
         public function Synthesizer( voiceAmount:int = 1 ):void
@@ -39,7 +42,9 @@ package nl.igorski.lib.audio.generators
             // during the (re)building of the new caches
             _oldCaches = new Vector.<AudioCache>();
             _oldCacheReadSteps = new Vector.<int>();
-            
+
+            _audioBuffer = BufferGenerator.generate();
+
             addVoices( voiceAmount );
         }
         
@@ -80,7 +85,7 @@ package nl.igorski.lib.audio.generators
          * in case of dynamic addition of voices, you can increase the size of the
          * cache Vectors for including the voices in the current synthesizer
          *
-         * @param totalLength, the total amount of voices required, only the difference
+         * @param {int} totalLength the total amount of voices required, only the difference
          *        between the old and new length will be added, existing indices remain as is
          */
         public function addVoices( totalLength:int = 1 ):void
@@ -98,14 +103,16 @@ package nl.igorski.lib.audio.generators
          * the synthesize function processes the added events and outputs these in
          * the current audio stream, so we can actually HEAR things
          *  
-         * @param buffer
+         * @param {Vector.<Vector.<Number>>} buffer
          *        the current sampleDataEvent's data, pass it to ISample classes
          *        for generating output in the buffer
          */
 
         public final function synthesize( buffer:Vector.<Vector.<Number>> ):void
         {
-            var audioBuffer:Vector.<Vector.<Number>> = BufferGenerator.generate();
+            // local reference for a bit more speed
+            var audioBuffer:Vector.<Vector.<Number>> = _audioBuffer;
+
             var bufferSize :int = AudioSequencer.BUFFER_SIZE;
             var position   :int = AudioSequencer.position;
 
@@ -172,14 +179,14 @@ package nl.igorski.lib.audio.generators
                     // so we read from the _oldCaches Vector during this rebuild until we can read from the
                     // cached Vector representing the audio currently in use
                     if ( !readOld ) {
-                        BufferGenerator.mix( audioBuffer, theCache.read( position, bufferSize ), 0 );
+                        mix( audioBuffer, theCache.read( position, bufferSize ), 0 );
                     }
                     else {
                         if ( _oldCacheReadSteps[i] > 0 ) {
-                            BufferGenerator.mix( audioBuffer, _oldCaches[i].read( position, bufferSize ), 0 );
+                            mix( audioBuffer, _oldCaches[i].read( position, bufferSize ), 0 );
                             --_oldCacheReadSteps[i];
                         } else {
-                            BufferGenerator.mix( audioBuffer, theCache.read( position, bufferSize ), 0 );
+                            mix( audioBuffer, theCache.read( position, bufferSize ), 0 );
                         }
                     }
                     for ( var j:int = theSamples.length - 1; j >= 0; --j )
@@ -209,7 +216,7 @@ package nl.igorski.lib.audio.generators
                                     if ( readLength < 0 )
                                         readLength = 0;
 
-                                    BufferGenerator.mix( audioBuffer, vo.sample.read( offset, readLength ));
+                                    mix( audioBuffer, vo.sample.read( offset, readLength ));
                                 }/*
                                 else {*/
                                 /*
@@ -257,7 +264,7 @@ package nl.igorski.lib.audio.generators
                  * straight from the cache into the output buffer */
                 else
                 {
-                    BufferGenerator.mix( audioBuffer, theCache.read( position, bufferSize ), 0 );
+                    mix( audioBuffer, theCache.read( position, bufferSize ), 0 );
                 }
             }
             /*
@@ -273,7 +280,15 @@ package nl.igorski.lib.audio.generators
                 l[i] += audioBuffer[0][i];
                 r[i] += audioBuffer[1][i];
             }
-            audioBuffer = null;
+
+            // clear write buffer for next cycle
+            i = audioBuffer[0].length;
+
+            while( i-- )
+            {
+                audioBuffer[0][i] = 0.0;
+                audioBuffer[1][i] = 0.0;
+            }
         }
 
         /*
@@ -448,5 +463,41 @@ package nl.igorski.lib.audio.generators
 
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S
+
+        /*
+         * mixes two audio buffers into one
+         *
+         * @output source buffer which should be used as the output by the synthesizer class
+         * @merge  buffer to be merged with the source / output buffer
+         *
+         * @level  optional : set the mix level of the merge buffer
+         */
+        private function mix( output:Vector.<Vector.<Number>>, merge:Vector.<Vector.<Number>>, position:Number = 0, level:Number = 1 ):void
+        {
+            var length:int = output[0].length;
+
+            if ( length > merge[0].length )
+                length = merge[0].length;
+
+            length -= position;
+
+            var i:int = position;
+
+            // 15 % faster, so avoid the need for multiplying by 1...
+            if ( level == 1 )
+            {
+                for ( i; i < length; ++i )
+                {
+                    output[0][i] += merge[0][i];
+                    output[1][i] += merge[1][i];
+                }
+            } else {
+                for ( i; i < length; ++i )
+                {
+                    output[0][i] += ( merge[0][i] * level );
+                    output[1][i] += ( merge[1][i] * level );
+                }
+            }
+        }
     }
 }

@@ -7,8 +7,9 @@ package nl.igorski.lib.ui.components
 
     import nl.igorski.lib.ui.components.events.RotaryEvent;
     import nl.igorski.lib.ui.components.events.SliderBarEvent;
+import nl.igorski.lib.utils.MathTool;
 
-    /**
+/**
      * @author Igor Zinken */
 
     public class Rotary extends Sprite
@@ -29,30 +30,34 @@ package nl.igorski.lib.ui.components
         private var _enabled            :Boolean;
         private var _callbackDelay      :Number;
         private var _callbackIval       :uint;
+        private var _roundedValues      :Boolean;
 
         private var _lastValue          :Number;
 
         //_________________________________________________________________________________________________________________
         //                                                                                            C O N S T R U C T O R
 
-        /*
-         * @size            the size of the Rotary element, this should be seen as circle radius
-         * @min             the value corresponding to the Rotary's zero degree state
-         * @max             the value corresponding to the Rotary's maximum degree state
-         * @defaultValue    the initial value of the Rotary element
-         * @enabled         whether the Rotary element is interactive
-         * @delayCallback   when the Rotary shouldn't fire it's change event on each move ( to prevent
-         *                  clogging up resources by triggering a process ) a delay ( in milliseconds )
-         *                  can be specified here. While the user drags the element no change events
-         *                  are dispatched until the dragging halts and the specified delay time has passed
+        /**
+         * @param size            the size of the Rotary element, this should be seen as circle radius
+         * @param min             the value corresponding to the Rotary's zero degree state
+         * @param max             the value corresponding to the Rotary's maximum degree state
+         * @param defaultValue    the initial value of the Rotary element
+         * @param enabled         whether the Rotary element is interactive
+         * @param delayCallback   when the Rotary shouldn't fire it's change event on each move ( to prevent
+         *                        clogging up resources by triggering a process ) a delay ( in milliseconds )
+         *                        can be specified here. While the user drags the element no change events
+         *                        are dispatched until the dragging halts and the specified delay time has passed
+         * @param roundedValues {Boolean} returns rounded integers instead of floating point Numbers
          */
-        public function Rotary( size:Number = 100, min:Number = 0, max:Number = 100, defaultValue:Number = 0, enabled:Boolean = true, delayCallback:Number = 0 ):void
+        public function Rotary( size:Number = 100, min:Number = 0, max:Number = 100, defaultValue:Number = 0,
+                                enabled:Boolean = true, delayCallback:Number = 0, roundedValues:Boolean = false ):void
         {
             _size          = size * .5;
             _min           = min;
             _max           = max;
             _enabled       = enabled;
             _callbackDelay = delayCallback;
+            _roundedValues = roundedValues;
 
             if ( defaultValue == 0 )
                 defaultValue = _min;
@@ -77,7 +82,9 @@ package nl.igorski.lib.ui.components
             var pct     :Number = rotationToPercentage( knob.rotation );
             var dev     :Number = _max - _min;
 
-            return ( pct * dev ) + _min;
+            var theValue:Number = ( pct * dev ) + _min;
+
+            return ( _roundedValues ) ? MathTool.round( theValue ) : theValue;
         }
 
         public function set value( v:Number ):void

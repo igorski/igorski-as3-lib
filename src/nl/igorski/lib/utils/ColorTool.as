@@ -22,30 +22,34 @@ package nl.igorski.lib.utils
         //                                                                              P U B L I C   M E T H O D S
 
         /**
-         * convert a hexadecimal color to RGB values
+         * convert a hexadecimal color to RGB values w/ alpha channel
          * @param hex {uint} hexadecimal color
          * @return {Object} w/ .r, .g, .b, .a values
          */
-        public static function hexToRGB( hex:uint ):Object
+        public static function hexToRGBA( hex:uint ):Object
         {
             var c:Object = {};
 
-            c.a = hex >> 24 & 0xFF;
             c.r = hex >> 16 & 0xFF;
             c.g = hex >> 8 & 0xFF;
             c.b = hex & 0xFF;
+            c.a = hex >> 24 & 0xFF;
 
             return c;
         }
 
         /**
          * convert RGB color object { .r, .g, .b } to a hex color
-         * @param c {Object} RGB color
+         *
+         * @param red   {int} the red value
+         * @param green {int} the green value
+         * @param blue  {int} the blue value
+         *
          * @return {uint} hexadecimal color
          */
-        public static function RGBtoHex( c:Object ):uint
+        public static function RGBtoHex( red:int, green:int, blue:int ):uint
         {
-            return new ColorTransform( 0, 0, 0, 0, c.r, c.g, c.b, 100 ) as uint;
+            return new ColorTransform( 0, 0, 0, 0, red, green, blue, 100 ) as uint;
         }
 
         /**
@@ -66,25 +70,6 @@ package nl.igorski.lib.utils
             b += (( lowColor & 0xFF ) - b ) * value;
 
             return ( r << 16 | g << 8 | b );
-        }
-
-        /**
-         * create a shade of a given color
-         * @param color {uint} base color
-         * @param intensity {int} intensity to shift color palette by
-         * @return {uint}
-         */
-        public static function calculateShade( color:uint, intensity:int = 20 ):uint
-        {
-            var c:Object = hexToRGB( color );
-
-            for ( var i:String in c )
-            {
-                c[ i ] += intensity;
-                c[ i ] = Math.min( c[ i ], 255 ); // -- make sure below 255
-                c[ i ] = Math.max( c[ i ], 0 );   // -- make sure above 0
-            }
-            return RGBtoHex( c );
         }
 
         //_________________________________________________________________________________________________________
