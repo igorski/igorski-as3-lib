@@ -1,5 +1,10 @@
 package nl.igorski.lib.audio.generators
 {
+    import com.noteflight.standingwave3.elements.AudioDescriptor;
+    import com.noteflight.standingwave3.elements.Sample;
+
+    import nl.igorski.lib.audio.caching.AudioCache;
+
     import nl.igorski.lib.audio.core.AudioSequencer;
     import nl.igorski.lib.audio.core.interfaces.IVoice;
     import nl.igorski.lib.audio.helpers.BulkCacher;
@@ -24,7 +29,7 @@ package nl.igorski.lib.audio.generators
         private const CACHE_RELEASE_TIME        :int = 8;
 
         /* temporary buffer used for writing in each cycle */
-        private var _audioBuffer                :Vector.<Vector.<Number>>;
+        private var _buffer                     :Sample;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
@@ -43,11 +48,9 @@ package nl.igorski.lib.audio.generators
             _oldCaches = new Vector.<AudioCache>();
             _oldCacheReadSteps = new Vector.<int>();
 
-            _audioBuffer = BufferGenerator.generate();
-
             addVoices( voiceAmount );
         }
-        
+
         //_________________________________________________________________________________________________________
         //                                                                                              P U B L I C
 
@@ -102,19 +105,14 @@ package nl.igorski.lib.audio.generators
         /**
          * the synthesize function processes the added events and outputs these in
          * the current audio stream, so we can actually HEAR things
-         *  
-         * @param {Vector.<Vector.<Number>>} buffer
-         *        the current sampleDataEvent's data, pass it to ISample classes
-         *        for generating output in the buffer
          */
 
-        public final function synthesize( buffer:Vector.<Vector.<Number>> ):void
+        public final function synthesize():void
         {
-            // local reference for a bit more speed
-            var audioBuffer:Vector.<Vector.<Number>> = _audioBuffer;
-
             var bufferSize :int = AudioSequencer.BUFFER_SIZE;
             var position   :int = AudioSequencer.position;
+
+            _buffer = new Sample( new AudioDescriptor(), bufferSize );
 
             /*
              * rather than taking the current step position from the sequencer, we
@@ -126,9 +124,12 @@ package nl.igorski.lib.audio.generators
             var multiplier :int = ( step == 0 && position > 0 ) ? 1 : step;
 
             // calculate the amount of bytes we are past the last tick, and the end position for this cycle
+
             var offset     :int = Math.abs( position - ( AudioSequencer.BYTES_PER_TICK *  multiplier ));
             var endPosition:int = position + bufferSize;
             var readLength :int;
+
+            var mixQueue   :Vector.<AudioCache> = new Vector.<AudioCache>();
 
             for( var i:int = 0; i < _voiceSamples.length; ++i )
             {
@@ -136,8 +137,8 @@ package nl.igorski.lib.audio.generators
                 if ( _invalidate != null )
                     clearCache( i );
 
-                if ( _cachedVoices[i] == null )
-                    _cachedVoices[i] = new AudioCache( AudioSequencer.BYTES_PER_BAR, false );
+                if ( _cachedVoices[ i ] == null )
+                    _cachedVoices[ i ] = new AudioCache( AudioSequencer.BYTES_PER_BAR, false );
 
                 var doCache:Boolean = AudioSequencer.getVoice( i ).active;
                 var theSamples:Vector.<VOAudioEvent> = _voiceSamples[ i ];
@@ -179,14 +180,14 @@ package nl.igorski.lib.audio.generators
                     // so we read from the _oldCaches Vector during this rebuild until we can read from the
                     // cached Vector representing the audio currently in use
                     if ( !readOld ) {
-                        mix( audioBuffer, theCache.read( position, bufferSize ), 0 );
+                        mix( theCache, position, bufferSize );
                     }
                     else {
                         if ( _oldCacheReadSteps[i] > 0 ) {
-                            mix( audioBuffer, _oldCaches[i].read( position, bufferSize ), 0 );
+                            mix( _oldCaches[i], position, bufferSize );
                             --_oldCacheReadSteps[i];
                         } else {
-                            mix( audioBuffer, theCache.read( position, bufferSize ), 0 );
+                            mix( theCache, position, bufferSize );
                         }
                     }
                     for ( var j:int = theSamples.length - 1; j >= 0; --j )
@@ -197,9 +198,9 @@ package nl.igorski.lib.audio.generators
                         if ( doCache )
                         {
                             /*
-                             * sample's buffer is full ? read its currently audible audio content
+                             * samples buffer is full ? read its currently audible audio content
                              * into the audioBuffer for direct output and cache its full contents
-                             * in the voice's cache */
+                             * in the voices cache */
 
                             if ( vo.sample != null && vo.sample.valid )
                             {
@@ -216,20 +217,20 @@ package nl.igorski.lib.audio.generators
                                     if ( readLength < 0 )
                                         readLength = 0;
 
-                                    mix( audioBuffer, vo.sample.read( offset, readLength ));
+                                    mix( vo.sample, offset, readLength );
                                 }/*
                                 else {*/
                                 /*
                                  * we splice the audio event from the list after its caching has completed
-                                 * and write the sample's cached contents in the voice's buffer, note
+                                 * and write the samples cached contents in the voices buffer, note
                                  * we don't write it into the current audioBuffer for direct output as
                                  * we're caching a step ahead ! */
 
                                     theSamples.splice( j, 1 );
                                     BulkCacher.addCachedSample( vo );
 
-                                    theCache.write( vo.sample.read( 0, vo.sample.length ),
-                                                    vo.delta * AudioSequencer.BYTES_PER_TICK );
+                                    theCache.write( vo.sample, vo.delta * AudioSequencer.BYTES_PER_TICK, vo.sample.length );
+                                    theCache.vectorsToMemory();
 
                                 //}
                             }
@@ -251,43 +252,41 @@ package nl.igorski.lib.audio.generators
                     if ( theSamples.length == 0 && AudioSequencer.stepPosition == 15
                         && getInvalidationDataForVoice( i ) == null )
                     {
+                        theCache.vectorsToMemory();
                         theCache.valid = true;
+
                         trace( "CACHE " + i + "  VALID TRUE" );
-                        if ( _oldCaches[i] != null ) {
-                            _oldCaches[i].destroy();
-                            _oldCaches[i] = null;
+
+                        if ( _oldCaches[ i ] != null )
+                        {
+                            _oldCaches[ i ].destroy();
+                            _oldCaches[ i ] = null;
                         }
                     }
                 }
                 /*
-                 * current voice has all its samples cached, read
-                 * straight from the cache into the output buffer */
+                 * current voice has all its samples cached, queue so we can
+                 * read straight from the cache into the output buffer */
                 else
                 {
-                    mix( audioBuffer, theCache.read( position, bufferSize ), 0 );
+                    mixQueue.push( theCache );
                 }
             }
             /*
              * audioBuffer filled ?
-             * write it into the currently streaming SampleDataEvent
+             * write it into the sampleBuffer which will feed the currently streaming SampleDataEvent
              * this is what creates the actual output into the AudioSequencer */
 
-            var l:Vector.<Number> = buffer[0];
-            var r:Vector.<Number> = buffer[1];
+            //_buffer = new Sample( new AudioDescriptor(), AudioSequencer.BUFFER_SIZE );
+            //_buffer.commitSlice( audioBuffer[ 0 ], 0, 0 );
+            //_buffer.commitSlice( audioBuffer[ 1 ], 1, 0 );
 
-            for ( i = 0, j = audioBuffer[0].length; i < j; ++i )
+            // process mix queue
+            i = mixQueue.length;
+
+            while ( i-- )
             {
-                l[i] += audioBuffer[0][i];
-                r[i] += audioBuffer[1][i];
-            }
-
-            // clear write buffer for next cycle
-            i = audioBuffer[0].length;
-
-            while( i-- )
-            {
-                audioBuffer[0][i] = 0.0;
-                audioBuffer[1][i] = 0.0;
+                _buffer.mixInDirectAccessSource( mixQueue[ i ].sample, position, 1.0, 0, bufferSize );
             }
         }
 
@@ -306,20 +305,19 @@ package nl.igorski.lib.audio.generators
 
             for ( var i:int = 0; i < data.length; ++i )
             {
-                _cachedVoices[i] = new AudioCache( AudioSequencer.BYTES_PER_BAR, false );
+                _cachedVoices[ i ] = new AudioCache( AudioSequencer.BYTES_PER_BAR, false );
 
                 for each( var re:VOAudioEvent in data[i] )
                 {
                     var vo:VOAudioEvent = BulkCacher.getCachedSample( re.id );
 
-                    _cachedVoices[i].write( vo.sample.read( 0, vo.sample.length ),
-                                            vo.delta * AudioSequencer.BYTES_PER_TICK );
-
+                    _cachedVoices[ i ].write( vo.sample, vo.delta * AudioSequencer.BYTES_PER_TICK, vo.sample.length );
                 }
-                _cachedVoices[i].valid = true;
+                _cachedVoices[ i ].valid = true;
+                _cachedVoices[ i ].vectorsToMemory();
             }
         }
-        
+
         /*
          * invalidate cache(s), called when a timeline's content has changed
          * ( notes added / deleted ) or a new song has been loaded
@@ -366,6 +364,11 @@ package nl.igorski.lib.audio.generators
 
         //_________________________________________________________________________________________________________
         //                                                                        G E T T E R S   /   S E T T E R S
+
+        public function get sample():Sample
+        {
+            return _buffer;
+        }
 
         //_________________________________________________________________________________________________________
         //                                                                              E V E N T   H A N D L E R S
@@ -415,7 +418,7 @@ package nl.igorski.lib.audio.generators
 
                 if ( theCache != null )
                 {
-                    // the voice contained an audio cache, write it's contents to
+                    // the voice contained an audio cache, write its contents to
                     // a temporary "oldCache" for reading during repeated clearing
                     // of the currently building cache ( by adding / removing notes
                     // from the timeline or altering the voice's audio parameters )\
@@ -423,7 +426,7 @@ package nl.igorski.lib.audio.generators
                     if ( _oldCaches[ voice ] == null )
                     {
                         _oldCaches[ voice ] = new AudioCache( theCache.length );
-                        _oldCaches[ voice ].write( theCache.read( 0, theCache.length ));
+                        _oldCaches[ voice ].clone( theCache );
 
                         if ( _oldCacheReadSteps[ voice ] == 0 )
                             _oldCacheReadSteps[ voice ] = CACHE_RELEASE_TIME;
@@ -464,40 +467,17 @@ package nl.igorski.lib.audio.generators
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S
 
-        /*
+        /**
          * mixes two audio buffers into one
          *
-         * @output source buffer which should be used as the output by the synthesizer class
-         * @merge  buffer to be merged with the source / output buffer
-         *
-         * @level  optional : set the mix level of the merge buffer
+         * @param merge    {nl.igorski.lib.audio.caching.AudioCache} containing audio to mix in
+         * @param position {int} read position in merge cache
+         * @param length   {int} total amount of samples to mix in
          */
-        private function mix( output:Vector.<Vector.<Number>>, merge:Vector.<Vector.<Number>>, position:Number = 0, level:Number = 1 ):void
+        private function mix( merge:AudioCache, position:int = 0, length:int = 0 ):void
         {
-            var length:int = output[0].length;
-
-            if ( length > merge[0].length )
-                length = merge[0].length;
-
-            length -= position;
-
-            var i:int = position;
-
-            // 15 % faster, so avoid the need for multiplying by 1...
-            if ( level == 1 )
-            {
-                for ( i; i < length; ++i )
-                {
-                    output[0][i] += merge[0][i];
-                    output[1][i] += merge[1][i];
-                }
-            } else {
-                for ( i; i < length; ++i )
-                {
-                    output[0][i] += ( merge[0][i] * level );
-                    output[1][i] += ( merge[1][i] * level );
-                }
-            }
+            if ( merge.sample != null )
+                _buffer.mixInDirectAccessSource( merge.sample, position, 1.0, 0, length );
         }
     }
 }

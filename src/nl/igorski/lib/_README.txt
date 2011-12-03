@@ -1,10 +1,13 @@
 these files were first shared to create an open source library of the
 nl.igorski.lib.audio-package, which is the the audio synthesis and caching
-engine used by www.onebarloop.com
+engine used by www.onebarloop.com. It is dependant upon the Standing Wave 3
+library ( available at https://github.com/maxl0rd/standingwave3 ) for the
+fast memory read/writes of sample data using Alchemy. However, the core audio
+generation and sequencing logic has been built from scratch.
 
-However, other classes and components used for www.onebar... ( and several other
-projects ) have also been released in the public domain, hopefully someone has
-use for these, in essence: they are nothing special - several have created
+Apart from the audio engine, other classes and components used for www.onebar...
+( and several other projects ) have also been released in the public domain, hopefully
+someone has use for these, in essence: they are nothing special - several have created
 similar or 'better' versions of the functionalities on offer - but they get the
 job done adequately.
 

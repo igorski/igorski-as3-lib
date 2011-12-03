@@ -14,8 +14,9 @@ package nl.igorski.lib.audio.ui
     import nl.igorski.lib.audio.model.vo.VOAudioEvent;
     import nl.igorski.lib.audio.ui.interfaces.IGridBlock;
     import nl.igorski.lib.audio.ui.interfaces.IAudioTimeline;
+import nl.igorski.lib.interfaces.IDestroyable;
 
-    public class AudioTimeline extends Sprite implements IAudioTimeline
+public class AudioTimeline extends Sprite implements IAudioTimeline
     {
         /**
          * Created by IntelliJ IDEA.
@@ -38,19 +39,19 @@ package nl.igorski.lib.audio.ui
         protected var pitchBlocks       :Vector.<IGridBlock>;
         protected var frequencies       :Vector.<Dictionary>;
 
-        public var blockMargin          :int = 28;
+        public var blockMargin          :int = blockClass.WIDTH + 3;
         protected var _octaves          :int = 8;
         protected var _curOctave        :int = 3;
         protected var tf                :*;
 
         protected var BTNup             :Sprite;
         protected var BTNdown           :Sprite;
-        public var onScreen             :Boolean = true;
 
         protected var _container        :Sprite;
         protected var _mask             :Sprite;
         protected var _color            :uint;
         protected var _highlightColor   :uint;
+        protected var _onScreen         :Boolean = true;
         public var pointer              :Sprite;
 
         // the voice this timeline is connected to, i.e. this timelines data
@@ -84,9 +85,19 @@ package nl.igorski.lib.audio.ui
             return frequencies[ position ];
         }
 
+        public function get onScreen():Boolean
+        {
+            return _onScreen;
+        }
+
+        public function set onScreen( value:Boolean ):void
+        {
+            _onScreen = value;
+        }
+
         public function updatePosition( position:int ):void
         {
-            if ( onScreen )
+            if ( _onScreen )
                 updatePointerPosition( position );
         }
 
@@ -232,18 +243,18 @@ package nl.igorski.lib.audio.ui
 
                 for ( var i:int = pitchBlocks.length - 1; i > 0; --i )
                 {
-                    block = pitchBlocks[i] as DisplayObject;
+                    block = pitchBlocks[ i ] as DisplayObject;
 
                     if ( fullDestroy )
                     {
-                        IGridBlock( block ).destroy();
+                        IDestroyable( block ).destroy();
 
                         if ( _container.contains( block ))
                             _container.removeChild( block );
 
-                        block = null;
-
                         pitchBlocks.splice( i, 1 );
+
+                        block = null;
                     }
                     else {
                         IGridBlock( block ).setData( 0 );
@@ -271,7 +282,7 @@ package nl.igorski.lib.audio.ui
                 } else {
                     frequencies = new Vector.<Dictionary>( STEPS, true );
                     for ( i = 0; i < frequencies.length; ++i )
-                        frequencies[i] = new Dictionary();
+                        frequencies[ i ] = new Dictionary();
                 }
             }
 

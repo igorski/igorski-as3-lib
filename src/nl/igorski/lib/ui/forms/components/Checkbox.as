@@ -5,6 +5,7 @@
     import flash.events.MouseEvent;
 
     import nl.igorski.lib.definitions.Fonts;
+    import nl.igorski.lib.interfaces.IDestroyable;
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
     import nl.igorski.lib.ui.components.StdTextField;
 
@@ -12,7 +13,7 @@
      * ...
      * @author Igor Zinken
      */
-    public class Checkbox extends Sprite implements IFormElement
+    public class Checkbox extends Sprite implements IFormElement, IDestroyable
     {
         private var bg			:Sprite;
         private var checked_bg	:Sprite;
@@ -70,6 +71,11 @@
             error_bg.alpha = 0;
         }
 
+        public function destroy():void
+        {
+            removeListeners();
+        }
+
         //_________________________________________________________________________________________________________
         //                                                                            G E T T E R S / S E T T E R S
 
@@ -114,7 +120,7 @@
         private function initUI(e:Event):void
         {
             removeEventListener( Event.ADDED_TO_STAGE, initUI );
-            addEventListener( MouseEvent.CLICK, handleClick );
+            addListeners();
             draw();
         }
 
@@ -125,6 +131,7 @@
                 case true:
                     uncheck();
                     break;
+
                 case false:
                     check();
                     break;
@@ -181,5 +188,14 @@
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S
 
+        private function addListeners():void
+        {
+            addEventListener( MouseEvent.CLICK, handleClick );
+        }
+
+        private function removeListeners():void
+        {
+            removeEventListener( MouseEvent.CLICK, handleClick );
+        }
     }
 }

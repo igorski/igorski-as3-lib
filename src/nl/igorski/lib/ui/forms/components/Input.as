@@ -9,10 +9,11 @@
     import flash.utils.*;
 
     import nl.igorski.lib.definitions.Fonts;
+    import nl.igorski.lib.interfaces.IDestroyable;
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
     import nl.igorski.lib.ui.components.StdTextField;
 
-    public class Input extends Sprite implements IFormElement
+    public class Input extends Sprite implements IFormElement, IDestroyable
     {
         public static const BLUR    :String = "Input::BLUR";
 
@@ -125,6 +126,11 @@
         public function setSelection( beginIndex:int, endIndex:int ):void
         {
             textField.setSelection( beginIndex, endIndex );
+        }
+
+        public function destroy():void
+        {
+            removeListeners();
         }
 
         //_________________________________________________________________________________________________________
@@ -302,6 +308,12 @@
         {
             textField.addEventListener( FocusEvent.FOCUS_IN, handleTextFieldFocus );
             textField.addEventListener( FocusEvent.FOCUS_OUT, handleTextFieldBlur );
+        }
+
+        private function removeListeners():void
+        {
+            textField.removeEventListener( FocusEvent.FOCUS_IN, handleTextFieldFocus );
+            textField.removeEventListener( FocusEvent.FOCUS_OUT, handleTextFieldBlur );
         }
 
         // here we clear the field's text content ( avoiding password field annoyances =p )

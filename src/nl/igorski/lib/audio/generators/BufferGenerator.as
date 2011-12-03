@@ -18,12 +18,13 @@ package nl.igorski.lib.audio.generators
         //_________________________________________________________________________________________________________
         //                                                                              P U B L I C   M E T H O D S
 
-        /*
+        /**
          * generates an empty stereo buffer to write audio into
          *
-         * @length integer containing desired length, when empty will default to buffer size
+         * @param  length {int} containing desired length, when empty will default to buffer size
+         * @return {Array} containing two Number Vectors
          */
-        public static function generate( length:int = -1 ):Vector.<Vector.<Number>>
+        public static function generate( length:int = -1 ):Array
         {
             if ( length == -1 )
                 length = AudioSequencer.BUFFER_SIZE;
@@ -31,15 +32,15 @@ package nl.igorski.lib.audio.generators
             // we generate two Vector.<Number> vectors in the output
             // for each channel ( we're working in stereo )
             
-            var output:Vector.<Vector.<Number>> = new Vector.<Vector.<Number>>( 2, true );
+            var output:Array = [];
             
-            output[0] = new Vector.<Number>( length, true );
-            output[1] = new Vector.<Number>( length, true );
+            output[ 0 ] = new Vector.<Number>( length, true );
+            output[ 1 ] = new Vector.<Number>( length, true );
             
             for ( var i:int = 0; i < length; ++i )
             {
-                output[0][i] = 0.0;
-                output[1][i] = 0.0;
+                output[ 0 ][ i ] = 0.0;
+                output[ 1 ][ i ] = 0.0;
             }
             return output;
         }

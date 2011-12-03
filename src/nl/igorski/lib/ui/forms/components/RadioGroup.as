@@ -3,6 +3,8 @@
     import flash.display.Sprite;
     import flash.events.Event;
 
+    import nl.igorski.lib.interfaces.IDestroyable;
+
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
 
     /**
@@ -12,7 +14,7 @@
      * ...
      * @author Igor Zinken
      */
-    public class RadioGroup extends Sprite implements IFormElement
+    public class RadioGroup extends Sprite implements IFormElement, IDestroyable
     {
 
         public static const CHANGE  :String = "RadioGroup::CHANGE";
@@ -68,6 +70,12 @@
         {
             for each( var r:Radio in _radios )
                 r.uncheck();
+        }
+
+        public function destroy():void
+        {
+            for each( var r:Radio in _radios )
+                r.removeEventListener( Radio.ACTIVATE, handleClick );
         }
 
         //_________________________________________________________________________________________________________

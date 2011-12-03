@@ -24,7 +24,7 @@ package nl.igorski.lib.audio.generators.waveforms
         //_________________________________________________________________________________________________________
         //                                                                                              P U B L I C
 
-        override public function generate( buffer: Vector.<Vector.<Number>>, pointer:int = -1 ):void
+        override public function generate( buffer:Array, pointer:int = -1 ):void
         {
             var amplitude   :Number;
             var env         :Number;

@@ -1,11 +1,13 @@
 package nl.igorski.lib.ui.components
 {
     import flash.display.Sprite;
-    import flash.events.Event;
     import flash.events.MouseEvent;
     import flash.geom.Rectangle;
 
+    import nl.igorski.lib.interfaces.IDestroyable;
+
     import nl.igorski.lib.ui.components.events.SliderBarEvent;
+    import nl.igorski.lib.utils.Destroyer;
 
     /**
      * Package:    nl.igorski.ui.components
@@ -16,7 +18,7 @@ package nl.igorski.lib.ui.components
      * @version    0.1
      * @since      23-12-2010 9:58
     */
-    public class SliderBar extends Sprite
+    public class SliderBar extends Sprite implements IDestroyable
     {
         public static const HORIZONTAL	:String = "SliderBar::HORIZONTAL";
         public static const VERTICAL	:String = "SliderBar::VERTICAL";
@@ -59,6 +61,12 @@ package nl.igorski.lib.ui.components
 
         //_________________________________________________________________________________________________________________
         //                                                                                      P U B L I C   M E T H O D S
+
+        public function destroy():void
+        {
+            enabled = false;
+            Destroyer.destroyDisplayList( this );
+        }
 
         //_________________________________________________________________________________________________________________
         //                                                                                  G E T T E R S  /  S E T T E R S
@@ -133,8 +141,10 @@ package nl.igorski.lib.ui.components
             }
             else {
                 handle.buttonMode = handle.useHandCursor = false;
+
                 if ( handle.hasEventListener( MouseEvent.MOUSE_DOWN ))
                     handle.removeEventListener( MouseEvent.MOUSE_DOWN, handleMouseDown );
+
                 track.alpha = .65;
             }
         }

@@ -3,15 +3,18 @@
     import flash.display.Sprite;
     import flash.events.Event;
     import flash.events.MouseEvent;
+
+    import nl.igorski.lib.interfaces.IDestroyable;
+
     /**
      * ...
      * @author Igor Zinken
      */
-    public class CloseButton extends Sprite
+    public class CloseButton extends Sprite implements IDestroyable
     {
-        public static const CLICK		:String = 'CloseButton::CLICK';
-        public static const WIDTH		:int = 18;
-        public static const HEIGHT		:int = 18;
+        public static const REQUEST_CLOSE   :String = 'CloseButton::REQUEST_CLOSE';
+        public static const WIDTH           :int = 18;
+        public static const HEIGHT          :int = 18;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
@@ -23,6 +26,11 @@
 
         //_________________________________________________________________________________________________________
         //                                                                              P U B L I C   M E T H O D S
+
+        public function destroy():void
+        {
+            removeListeners();
+        }
 
         //_________________________________________________________________________________________________________
         //                                                                            G E T T E R S / S E T T E R S
@@ -37,14 +45,14 @@
             buttonMode = useHandCursor = true;
             mouseChildren = false;
 
-            addEventListener( MouseEvent.CLICK, handleClick );
+            addListeners();
             draw();
         }
 
 
         protected function handleClick( e:MouseEvent ):void
         {
-            dispatchEvent( new Event( CLICK ));
+            dispatchEvent( new Event( REQUEST_CLOSE ));
         }
 
         //_________________________________________________________________________________________________________
@@ -70,5 +78,15 @@
 
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S
+
+        private function addListeners():void
+        {
+            addEventListener( MouseEvent.CLICK, handleClick );
+        }
+
+        private function removeListeners():void
+        {
+            removeEventListener( MouseEvent.CLICK, handleClick );
+        }
     }
 }

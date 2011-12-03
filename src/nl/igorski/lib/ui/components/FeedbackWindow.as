@@ -3,15 +3,17 @@
     import flash.display.Sprite;
     import flash.events.Event;
 
-import nl.igorski.lib.definitions.Fonts;
+    import nl.igorski.lib.definitions.Fonts;
+    import nl.igorski.lib.interfaces.IDestroyable;
+    import nl.igorski.lib.utils.Destroyer;
 
-/**
+    /**
      * FeedbackWindow is triggered on validation errors to
      * display these errors ( received from your backend )
      * ...
      * @author Igor Zinken
      */
-    public class FeedbackWindow extends Sprite
+    public class FeedbackWindow extends Sprite implements IDestroyable
     {
         public static const CLOSE   :String = "FeedbackWindow::CLOSE";
 
@@ -39,7 +41,7 @@ import nl.igorski.lib.definitions.Fonts;
             text.x = text.y = margin;
 
             close = new CloseButton();
-            close.addEventListener( CloseButton.CLICK, handleClose );
+            close.addEventListener( CloseButton.REQUEST_CLOSE, handleClose );
         }
 
         //_________________________________________________________________________________________________________
@@ -64,14 +66,8 @@ import nl.igorski.lib.definitions.Fonts;
 
         public function destroy():void
         {
-            close.removeEventListener( CloseButton.CLICK, handleClose );
-
-            while( numChildren > 0 )
-            {
-                var o:* = getChildAt( 0 );
-                removeChildAt( 0 );
-                o = null;
-            }
+            close.removeEventListener( CloseButton.REQUEST_CLOSE, handleClose );
+            Destroyer.destroyDisplayList( this );
         }
 
         //_________________________________________________________________________________________________________

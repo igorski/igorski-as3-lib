@@ -1,6 +1,9 @@
 package nl.igorski.lib.audio.core
 {
-    import flash.events.EventDispatcher;
+import com.noteflight.standingwave3.elements.AudioDescriptor;
+import com.noteflight.standingwave3.elements.Sample;
+
+import flash.events.EventDispatcher;
     import flash.events.SampleDataEvent;
     import flash.media.Sound;
     import flash.media.SoundChannel;
@@ -48,7 +51,6 @@ package nl.igorski.lib.audio.core
         private var _tempo                  :Number;
         private var _volume                 :Number = 1;
 
-        private var _buffer                 :Vector.<Vector.<Number>>;
         private var _lastBuffer             :int;
         private var _position               :int;
         private var _stepPosition           :int = 0;
@@ -124,7 +126,6 @@ package nl.igorski.lib.audio.core
 
                 invalidateCache();
             }
-            _buffer       = BufferGenerator.generate();
             _position     = 0.0;
             _stepPosition = 0;
             _sound        = new Sound();
@@ -156,7 +157,6 @@ package nl.igorski.lib.audio.core
 
             INSTANCE._sound.removeEventListener( SampleDataEvent.SAMPLE_DATA, INSTANCE.processAudio );
             INSTANCE._isPlaying = false;
-            INSTANCE.clearBuffer();
 
             INSTANCE.dispatchEvent( new SequencerEvent( SequencerEvent.PAUSE ));
         }
@@ -423,48 +423,55 @@ package nl.igorski.lib.audio.core
 
         /**
          * actually processes the audio events and outputs sound!
-         * @param e SampleDataEvent from the current audio stream */
+         * @param e {SampleDataEvent} from the current audio stream */
 
         private function processAudio( e:SampleDataEvent ):void
         {
-            if( _soundChannel != null )
+            if ( _soundChannel != null )
                 _latency = ( e.position * 2.267573696145e-02 ) - _soundChannel.position;
 
             //var to:Number = _position + BUFFER_SIZE * ( tempo * 9.448223733938e-8 );
             //_lastBuffer = getTimer();
 
-            clearBuffer();
-            _synthesizer.synthesize( _buffer );
-
-            var l:Vector.<Number> = _buffer[0];
-            var r:Vector.<Number> = _buffer[1];
+            _synthesizer.synthesize();
 
             var doModifiers:Boolean = ( _busModifiers.length > 0 );
 
+            // recalculate sequencer position at the sample level
             for ( var i:int = 0; i < BUFFER_SIZE; ++i )
             {
                 if ( _position % BYTES_PER_TICK == 0 )
                 {
                     ++_stepPosition;
+
                     if ( _stepPosition == STEPS_PER_BAR )
                         _stepPosition = 0;
 
                     handleTick();
                 }
-                if ( doModifiers )
-                {
-                    for each( var m:IBusModifier in _busModifiers )
-                        m.process( l[i] * _volume, r[i] * _volume, e.data );
-                }
-                else {
-                    e.data.writeFloat( l[i] * _volume );
-                    e.data.writeFloat( r[i] * _volume );
-                }
                 ++_position;
+
                 if ( _position > BYTES_PER_BAR )
                     _position = 0;
             }
-            if ( _doStop ) {
+
+            // process the bus modifiers
+            if ( doModifiers )
+            {
+                for each( var m:IBusModifier in _busModifiers )
+                    m.process( _synthesizer.sample.channelData );
+
+                _synthesizer.sample.invalidateSampleMemory();
+                _synthesizer.sample.commitChannelData();
+            }
+
+            _synthesizer.sample.changeGain( _volume );
+
+            // actual output of the synthesized samples
+            _synthesizer.sample.writeBytes( e.data, 0, BUFFER_SIZE );
+
+            if ( _doStop )
+            {
                 _sound.removeEventListener( SampleDataEvent.SAMPLE_DATA, processAudio );
                 doStop();
             }
@@ -491,18 +498,6 @@ package nl.igorski.lib.audio.core
             INSTANCE._synthesizer.invalidateCache( voice, invalidateChildren, immediateFlush, recacheChildren );
         }
 
-        private function clearBuffer(): void
-        {
-            var l:Vector.<Number> = _buffer[0];
-            var r:Vector.<Number> = _buffer[1];
-
-            for ( var i:int = 0; i < BUFFER_SIZE; ++i )
-            {
-                l[i] = 0.0;
-                r[i] = 0.0;
-            }
-        }
-
         private function doStop():void
         {
             //INSTANCE._soundChannel.stop();
@@ -510,7 +505,6 @@ package nl.igorski.lib.audio.core
             _isPlaying = false;
             _doStop    = false;
 
-            clearBuffer();
             init( false );
 
             dispatchEvent( new SequencerEvent( SequencerEvent.STOP ));

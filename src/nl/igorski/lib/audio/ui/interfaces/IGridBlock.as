@@ -13,7 +13,6 @@ package nl.igorski.lib.audio.ui.interfaces
         function highlight():void;
         function sleep():void;
         function wakeUp():void;
-        function destroy():void;
 
         function get frequency():Number;
         function get index():int;

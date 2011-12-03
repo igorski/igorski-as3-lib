@@ -8,13 +8,16 @@
     import flash.geom.Rectangle;
     import flash.text.TextField;
 
+    import nl.igorski.lib.interfaces.IDestroyable;
+    import nl.igorski.lib.utils.Destroyer;
+
     /**
      * ScrollBlock is a self-masking container which provides a simple
      * scrollbar when a given DisplayObject exceeds the given dimensions
      * ...
      * @author Igor Zinken
      */
-    public class ScrollBlock extends Sprite
+    public class ScrollBlock extends Sprite implements IDestroyable
     {
         private var scrollContent   :DisplayObject;
 
@@ -191,6 +194,11 @@
             scrollContent.y = scrollContent.y / oldHeight * _height;
 
             initUI();
+        }
+
+        public function destroy():void
+        {
+            Destroyer.destroyDisplayList( this );
         }
 
         //_________________________________________________________________________________________________________

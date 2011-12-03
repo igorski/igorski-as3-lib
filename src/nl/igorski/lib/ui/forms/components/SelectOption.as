@@ -6,6 +6,7 @@
     import flash.text.TextFieldAutoSize;
 
     import nl.igorski.lib.definitions.Fonts;
+    import nl.igorski.lib.interfaces.IDestroyable;
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
     import nl.igorski.lib.ui.components.StdTextField;
 
@@ -15,7 +16,7 @@
      * ...
      * @author Igor Zinken
      */
-    public class SelectOption extends Sprite implements IFormElement
+    public class SelectOption extends Sprite implements IFormElement, IDestroyable
     {
         public static const SELECTED        :String = "SelectOption::SELECTED";
 
@@ -62,6 +63,11 @@
 
         }
 
+        public function destroy():void
+        {
+            removeListeners();
+        }
+
         //_________________________________________________________________________________________________________
         //                                                                            G E T T E R S / S E T T E R S
 
@@ -94,10 +100,7 @@
             removeEventListener( Event.ADDED_TO_STAGE, initUI) ;
 
             draw();
-
-            addEventListener( MouseEvent.CLICK, handleClick );
-            addEventListener( MouseEvent.ROLL_OVER, handleRollOver );
-            addEventListener( MouseEvent.ROLL_OUT, handleRollOut );
+            addListeners();
         }
 
         protected function handleClick( e:MouseEvent ):void
@@ -142,5 +145,19 @@
 
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S
+
+        private function addListeners():void
+        {
+            addEventListener( MouseEvent.CLICK, handleClick );
+            addEventListener( MouseEvent.ROLL_OVER, handleRollOver );
+            addEventListener( MouseEvent.ROLL_OUT, handleRollOut );
+        }
+
+        private function removeListeners():void
+        {
+            removeEventListener( MouseEvent.CLICK, handleClick );
+            removeEventListener( MouseEvent.ROLL_OVER, handleRollOver );
+            removeEventListener( MouseEvent.ROLL_OUT, handleRollOut );
+        }
     }
 }

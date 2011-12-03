@@ -10,6 +10,8 @@
     import flash.utils.clearInterval;
     import flash.utils.setInterval;
 
+    import nl.igorski.lib.interfaces.IDestroyable;
+
     import nl.igorski.lib.ui.components.ScrollBlock;
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
 
@@ -19,7 +21,7 @@
      *
      * @author Igor Zinken
      */
-    public class Select extends Sprite implements IFormElement
+    public class Select extends Sprite implements IFormElement, IDestroyable
     {
         public static const CHANGE      :String = "Select::CHANGE";
 
@@ -68,6 +70,14 @@
         public function undoError():void
         {
 
+        }
+
+        public function destroy():void
+        {
+            removeListeners();
+
+            for each( var input:SelectOption in _elements )
+                input.removeEventListener( SelectOption.SELECTED, handleOptionSelect );
         }
 
         //_________________________________________________________________________________________________________
@@ -122,7 +132,7 @@
             draw();
 
             buildList();
-            toggle.addEventListener( MouseEvent.CLICK, handleToggle );
+            addListeners();
         }
 
         private function handleOptionSelect( e:Event ):void
@@ -364,5 +374,15 @@
 
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S
+
+        private function addListeners():void
+        {
+            toggle.addEventListener( MouseEvent.CLICK, handleToggle );
+        }
+
+        private function removeListeners():void
+        {
+            toggle.removeEventListener( MouseEvent.CLICK, handleToggle );
+        }
     }
 }

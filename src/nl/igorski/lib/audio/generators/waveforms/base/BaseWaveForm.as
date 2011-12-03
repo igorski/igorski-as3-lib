@@ -100,10 +100,9 @@ package nl.igorski.lib.audio.generators.waveforms.base
         //_________________________________________________________________________________________________________
         //                                                                                              P U B L I C
 
-        public function generate( buffer:Vector.<Vector.<Number>>, pointer:int = -1 ):void
+        public function generate( buffer:Array, pointer:int = -1 ):void
         {
-            /*
-             * override in your subclass, this is where all
+            /* override in your subclass, this is where all
              * the calculations are performed that shape
              * the waveform and send them through their modifiers */
         }

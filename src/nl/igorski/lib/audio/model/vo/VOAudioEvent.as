@@ -4,10 +4,11 @@ package nl.igorski.lib.audio.model.vo
 
     import nl.igorski.lib.audio.core.AudioSequencer;
     import nl.igorski.lib.audio.core.events.AudioCacheEvent;
-    import nl.igorski.lib.audio.generators.AudioCache;
+    import nl.igorski.lib.audio.caching.AudioCache;
     import nl.igorski.lib.audio.generators.BufferGenerator;
     import nl.igorski.lib.audio.generators.waveforms.base.BaseWaveForm;
     import nl.igorski.lib.audio.helpers.IWaveCloner;
+    import nl.igorski.lib.interfaces.IDestroyable;
     import nl.igorski.util.threading.ThreadedFunction;
     import nl.igorski.util.threading.events.ThreadEvent;
 
@@ -24,13 +25,14 @@ package nl.igorski.lib.audio.model.vo
      * you can uncomment the alternate classes / non-threaded approach
      * for using the VOAudioEvent class in non-"threaded" mode
      */
-    public final class VOAudioEvent extends ThreadedFunction/*EventDispatcher*/
+
+    public final class VOAudioEvent extends ThreadedFunction/*EventDispatcher*/ implements IDestroyable
     {
         // the voice index ( in the AudioSequencer class ) used to
         // shape the timbre of the audio output
         public var voice        :int;
 
-        // unique values to this event
+        // values unique to this event
         public var frequency    :Number;
         public var length       :Number;
         public var delta        :int;
@@ -50,7 +52,7 @@ package nl.igorski.lib.audio.model.vo
         public var sampleEnd    :int;
 
         /* used for pseudo threading, can be removed when not in use */
-        private var cacheBuffer :Vector.<Vector.<Number>>;
+        private var cacheBuffer :Array;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
@@ -96,29 +98,27 @@ package nl.igorski.lib.audio.model.vo
             // 16-note context ( one tick = sixteenth note )
             var sampleLength:int = AudioSequencer.BYTES_PER_TICK * length + 0.5|0;
             sample = new AudioCache( sampleLength );
-
-            wave = IWaveCloner.clone( AudioSequencer.getVoice( voice ), frequency, length );
+            wave  = IWaveCloner.clone( AudioSequencer.getVoice( voice ), frequency, length );
 
             // synthesize this event into audio
-            /* NON-threaded mode */
+            /* NON-threaded mode, fastest, but will hog CPU resources from the Flash Player
+               stalling animations / other functions, etc. Might become unresponsive when
+               processing several large buffers! */
             /*
             for ( var i:int = 0; i < sampleLength; i += AudioSequencer.BUFFER_SIZE )
             {
-                var cacheBuffer:Vector.<Vector.<Number>> = BufferGenerator.generate();
+                var cacheBuffer:Array = BufferGenerator.generate();
                 wave.generate( cacheBuffer );
-                sample.append( cacheBuffer );
+                audio.append( cacheBuffer );
             }
-
-            isCaching = false;
-            wave      = null;
-
-            dispatchEvent( new AudioCacheEvent( AudioCacheEvent.CACHE_COMPLETED ));
+            threadComplete( null );
             */
-            // threaded mode
+
+            /* threaded mode, circa. 85 % of the speed but keeps resources free for the Flash Player */
             if ( _maximum > 0 )
                 stop();
 
-            start();
+            start(); // start threaded mode
         }
 
         /*
@@ -156,7 +156,7 @@ package nl.igorski.lib.audio.model.vo
 
         override protected function initialize():void
         {
-            cacheBuffer = BufferGenerator.generate( sampleLength );
+            cacheBuffer = sample.sample.channelData;
             _maximum    = sampleLength - 1;
             _progress   = 0;
 
@@ -183,11 +183,16 @@ package nl.igorski.lib.audio.model.vo
 
         private function threadComplete( e:ThreadEvent ):void
         {
-            isCaching = false;
-            _maximum  = 0;
-            removeEventListener( ThreadEvent.COMPLETE, threadComplete );
+            isCaching   = false;
+            wave        = null;
+            cacheBuffer = null;
+            _maximum    = 0;
 
-            sample.clone( cacheBuffer );
+            sample.valid = true;
+            sample.sample.invalidateSampleMemory();
+            sample.sample.commitChannelData();
+
+            removeEventListener( ThreadEvent.COMPLETE, threadComplete );
             dispatchEvent( new AudioCacheEvent( AudioCacheEvent.CACHE_COMPLETED ));
         }
     }

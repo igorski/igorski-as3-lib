@@ -8,6 +8,7 @@
 
     import nl.igorski.lib.View;
     import nl.igorski.lib.definitions.Fonts;
+    import nl.igorski.lib.interfaces.IDestroyable;
     import nl.igorski.lib.models.Proxy;
     import nl.igorski.lib.ui.forms.components.Birthdate;
     import nl.igorski.lib.ui.forms.components.Checkbox;
@@ -21,6 +22,7 @@
     import nl.igorski.lib.ui.forms.components.SubmitButton;
     import nl.igorski.lib.ui.forms.components.TextArea;
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
+    import nl.igorski.lib.utils.Destroyer;
 
     /**
      * the Base Form class, to be extended by each form you create. This class
@@ -32,7 +34,7 @@
      * ...
      * @author Igor Zinken
      */
-    public class BaseForm extends Sprite
+    public class BaseForm extends Sprite implements IDestroyable
     {
         public static const CLOSE           :String = "BaseForm::CLOSE";
 
@@ -158,6 +160,11 @@
             setChildIndex( feedback, numChildren - 1 );
         }
 
+        public function destroy():void
+        {
+            Destroyer.destroyDisplayList( this );
+        }
+
         //_________________________________________________________________________________________________________
         //                                                                            G E T T E R S / S E T T E R S
 
@@ -249,43 +256,52 @@
                     case Divider:
                         element = new Divider( item.width || ( inputMargin + 190 ), item.height || 18 );
                         break;
+
                     case Input:
                         element = new Input( item.placeHolderText || "", item.isSmall || false, item.isPassword || false, item.width || 190, item.height || 18 );
                         if ( showLabelInInputField )
                         {
                             formLabel.x = inputMargin + 5;
-                            element.addEventListener( FocusEvent.FOCUS_IN, hideLabel );
+                            element.addEventListener( FocusEvent.FOCUS_IN, hideLabel, false, 0, true );
                             labelFieldBindings.push( { field: element, lbl: formLabel } );
                         }
                         break;
+
                     case TextArea:
                         element = new TextArea( item.placeHolderText || "", item.width || 190, item.height || 70 );
                         if ( showLabelInInputField )
                         {
                             formLabel.x = inputMargin + 5;
-                            element.addEventListener( FocusEvent.FOCUS_IN, hideLabel );
+                            element.addEventListener( FocusEvent.FOCUS_IN, hideLabel, false, 0, true );
                             labelFieldBindings.push( { field: element, lbl: formLabel } );
                         }
                         break;
+
                     case Birthdate:
                         element = new Birthdate();
                         break;
+
                     case Checkbox:
                         element = new Checkbox( item.label );
                         break;
+
                     case RadioGroup:
                         element = new RadioGroup( item.label, item.options, item.maxWidth || 200 );
                         break;
+
                     case Select:
                         element = new Select( item.label, item.options, item.width || 190, item.height || 125 );
                         break;
+
                     case SubmitButton:
                         element = new SubmitButton( item.label );
-                        element.addEventListener( MouseEvent.CLICK, handleSubmit );
+                        element.addEventListener( MouseEvent.CLICK, handleSubmit, false, 0, true );
                         break;
+
                     case FormText:
                         element = new FormText( item.text );
                         break;
+
                     case null:
                         formLabel.y = curY;
                         curY = formLabel.y + margin;

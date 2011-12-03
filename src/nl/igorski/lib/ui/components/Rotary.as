@@ -5,14 +5,17 @@ package nl.igorski.lib.ui.components
     import flash.utils.clearInterval;
     import flash.utils.setInterval;
 
+    import nl.igorski.lib.interfaces.IDestroyable;
+
     import nl.igorski.lib.ui.components.events.RotaryEvent;
     import nl.igorski.lib.ui.components.events.SliderBarEvent;
-import nl.igorski.lib.utils.MathTool;
+    import nl.igorski.lib.utils.Destroyer;
+    import nl.igorski.lib.utils.MathTool;
 
-/**
+    /**
      * @author Igor Zinken */
 
-    public class Rotary extends Sprite
+    public class Rotary extends Sprite implements IDestroyable
     {
         private const MAX_ROTATION      :Number = 260;
 
@@ -49,6 +52,7 @@ import nl.igorski.lib.utils.MathTool;
          *                        are dispatched until the dragging halts and the specified delay time has passed
          * @param roundedValues {Boolean} returns rounded integers instead of floating point Numbers
          */
+
         public function Rotary( size:Number = 100, min:Number = 0, max:Number = 100, defaultValue:Number = 0,
                                 enabled:Boolean = true, delayCallback:Number = 0, roundedValues:Boolean = false ):void
         {
@@ -71,8 +75,11 @@ import nl.igorski.lib.utils.MathTool;
         //_________________________________________________________________________________________________________________
         //                                                                                      P U B L I C   M E T H O D S
 
-        //_________________________________________________________________________________________________________________
-        //                                                                                      P U B L I C   M E T H O D S
+        public function destroy():void
+        {
+            enabled = false;
+            Destroyer.destroyDisplayList( this );
+        }
 
         //_________________________________________________________________________________________________________________
         //                                                                                  G E T T E R S  /  S E T T E R S

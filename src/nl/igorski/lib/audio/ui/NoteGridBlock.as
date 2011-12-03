@@ -9,8 +9,9 @@ package nl.igorski.lib.audio.ui
     import flash.utils.setTimeout;
     import nl.igorski.lib.audio.core.AudioTimelineManager;
     import nl.igorski.lib.audio.ui.interfaces.IGridBlock;
+    import nl.igorski.lib.interfaces.IDestroyable;
 
-    public class NoteGridBlock extends Sprite implements IGridBlock
+    public class NoteGridBlock extends Sprite implements IGridBlock, IDestroyable
     {
         /**
          * Created by IntelliJ IDEA.
@@ -31,7 +32,7 @@ package nl.igorski.lib.audio.ui
         private var _grid                   :AudioTimeline;
         private var _position               :int;
 
-        public static const WIDTH           :int = 25;
+        public static const WIDTH           :int = 30;
         public static const ICON_SIZE       :int = 10;
         
         //_________________________________________________________________________________________________________

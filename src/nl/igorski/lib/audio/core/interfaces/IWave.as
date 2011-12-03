@@ -41,6 +41,6 @@ package nl.igorski.lib.audio.core.interfaces
         function get active():Boolean;
         function set active( value:Boolean ):void;
 
-        function generate( buffer:Vector.<Vector.<Number>>, pointer:int = -1 ):void;
+        function generate( buffer:Array, pointer:int = -1 ):void;
     }
 }

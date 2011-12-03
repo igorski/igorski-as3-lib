@@ -1,6 +1,5 @@
 package nl.igorski.lib.audio.modifiers
 {
-    import flash.utils.ByteArray;    
     import nl.igorski.lib.audio.core.AudioSequencer;
     import nl.igorski.lib.audio.core.interfaces.IBusModifier;
 
@@ -11,77 +10,76 @@ package nl.igorski.lib.audio.modifiers
          * User: igor.zinken
          * Date: 21-dec-2010
          * Time: 10:08:50
-         */
-
-        /**
-         * Delay is a audio modifier that creates an echo effect
-         * base mix writing concept by Andre Michelle
          *
          * TODO: currently only works as a bus modifier
          */
-        private var _delaySize              :int;
-        private var _delayLine              :Vector.<Vector.<Number>>;
-        private var _delayWriteIndex        :int;
-        private var _mix					:Number;
-        private var _feedback				:Number;
+        private var _delayBuffer            :Vector.<Vector.<Number>>;
+        private var _delayIndex             :int;
+        private var _time                   :int;
+        private var _mix                    :Number;
+        private var _feedback               :Number;
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
+
         /**
-         *
-         * @param delayTime
-         *        the time ( in milliseconds ) between the original signal and the echo
-         *        not we calculate the delaysize by using the samplerate in kHz
-         *
-         * 		  mix
-         * 		  dry / wet mix of delayed signal and original signal
-         *
-         *        feedback
-         *        the amount of signal we return to the echo
+         * @param delayTime {Number} in milliseconds, time between consecutive repeats
+         * @param mix       {Number} 0-1, percentage of dry/wet mix
+         * @param feedback  {Number} 0-1, amount of repeats
          */
         public function Delay( delayTime:Number = 250, mix:Number = .2, feedback:Number = .7 ):void
         {
-            _delaySize = Math.round(( AudioSequencer.SAMPLE_RATE * .001 ) * delayTime );
-            _delayLine = new Vector.<Vector.<Number>>( _delaySize, true );
-            _mix 	   = mix;
+            _time = Math.round(( AudioSequencer.SAMPLE_RATE * .001 ) * delayTime );
+            _delayBuffer = new Vector.<Vector.<Number>>( _time, true );
+            _mix       = mix;
             _feedback  = feedback;
 
-            for( var i:int = 0 ; i < _delaySize ; ++i )
-                _delayLine[i] = new Vector.<Number>( 2, true ); // STEREO DELAY LINE
+            for( var i:int = 0 ; i < _time ; ++i )
+                _delayBuffer[ i ] = new Vector.<Number>( 2, true );
 
-            _delayWriteIndex = 0;
+            _delayIndex = 0;
         }
 
         //_________________________________________________________________________________________________________
         //                                                                                              P U B L I C
 
-        public function process( sourceLeft:Number, sourceRight:Number, buffer:ByteArray ):void
+        /**
+         * run an audio signal through the delay line
+         *
+         * @param sampleBuffer {Array} containing two Number Vectors
+         */
+        public function process( sampleBuffer:Array ):void
         {
+            var inputLeft   :Vector.<Number> = sampleBuffer[ 0 ];
+            var inputRight  :Vector.<Number> = sampleBuffer[ 1 ];
             var delayLeft   :Number;
             var delayRight  :Number;
 
             var readIndex   :int;
-            
-            //-- COMPUTE READ POINT
-            readIndex = _delayWriteIndex - _delaySize + 1;
-            if( readIndex < 0 )
-                readIndex += _delaySize;
 
-            //-- READ FROM DELAY LINE
-            delayLeft   = _delayLine[readIndex][0];
-            delayRight  = _delayLine[readIndex][1];
-            
-            //-- WRITE INTO DELAY LINE
-            _delayLine[ _delayWriteIndex ][0] = sourceLeft + delayRight * feedback;
-            _delayLine[ _delayWriteIndex ][1] = sourceRight + delayLeft * feedback;
+            for ( var i:int = 0, j:int = sampleBuffer[ 0 ].length; i < j; ++i )
+            {
+                readIndex = _delayIndex - _time + 1;
 
-            //-- WRITE MIX BACK
-            buffer.writeFloat( sourceLeft + delayLeft * _mix );
-            buffer.writeFloat( sourceRight + delayRight * _mix );
+                if( readIndex < 0 )
+                    readIndex += _time;
 
-            //-- MOVE WRITE POINTER
-            if( ++_delayWriteIndex == _delaySize )
-                _delayWriteIndex = 0;
+                // read the previously delayed samples from the buffer
+                // ( for feedback purposes ) and append the current sample to it
+
+                delayLeft   = _delayBuffer[ readIndex ][ 0 ];
+                delayRight  = _delayBuffer[ readIndex ][ 1 ];
+
+                _delayBuffer[ _delayIndex ][ 0 ] = inputLeft[ i ]  + delayLeft * feedback;
+                _delayBuffer[ _delayIndex ][ 1 ] = inputRight[ i ] + delayRight * feedback;
+
+                if( ++_delayIndex == _time )
+                    _delayIndex = 0;
+
+                // stamp the echo onto the buffer
+                inputLeft[ i ]  += ( delayLeft * _mix );
+                inputRight[ i ] += ( delayRight * _mix );
+            }
         }
         
         public function getData():Object
@@ -105,16 +103,16 @@ package nl.igorski.lib.audio.modifiers
         
         public function get delayTime():Number
         {
-            return _delaySize / ( AudioSequencer.SAMPLE_RATE * .001 );
+            return _time / ( AudioSequencer.SAMPLE_RATE * .001 );
         }
 
         public function set delayTime( value:Number ):void
         {
-            _delaySize = Math.round(( AudioSequencer.SAMPLE_RATE * .001 ) * delayTime );
-            _delayLine = new Vector.<Vector.<Number>>( _delaySize, true );
+            _time = Math.round(( AudioSequencer.SAMPLE_RATE * .001 ) * delayTime );
+            _delayBuffer = new Vector.<Vector.<Number>>( _time, true );
 
-            for( var i:int = 0 ; i < _delaySize ; ++i )
-                _delayLine[i] = new Vector.<Number>( 2, true );
+            for( var i:int = 0 ; i < _time ; ++i )
+                _delayBuffer[i] = new Vector.<Number>( 2, true );
         }
 
         public function get mix():Number

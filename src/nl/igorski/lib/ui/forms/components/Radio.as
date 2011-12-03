@@ -5,6 +5,7 @@
     import flash.events.MouseEvent;
 
     import nl.igorski.lib.definitions.Fonts;
+    import nl.igorski.lib.interfaces.IDestroyable;
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
     import nl.igorski.lib.ui.components.StdTextField;
 
@@ -13,7 +14,7 @@
      * ...
      * @author Igor Zinken
      */
-    public class Radio extends Sprite implements IFormElement
+    public class Radio extends Sprite implements IFormElement, IDestroyable
     {
         public static const ACTIVATE	:String = "Radio::ACTIVATE";
 
@@ -70,6 +71,11 @@
             error_bg.alpha = 0;
         }
 
+        public function destroy():void
+        {
+            removeListeners();
+        }
+
         //_________________________________________________________________________________________________________
         //                                                                            G E T T E R S / S E T T E R S
 
@@ -105,8 +111,7 @@
 
             draw();
 
-            addEventListener( MouseEvent.CLICK, handleClick );
-
+            addListeners();
         }
 
         protected function handleClick( e:MouseEvent ):void
@@ -175,5 +180,15 @@
 
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S
+
+        private function addListeners():void
+        {
+            addEventListener( MouseEvent.CLICK, handleClick );
+        }
+
+        private function removeListeners():void
+        {
+            removeEventListener( MouseEvent.CLICK, handleClick );
+        }
     }
 }
