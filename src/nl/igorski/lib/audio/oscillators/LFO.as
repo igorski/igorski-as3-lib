@@ -56,11 +56,11 @@ package nl.igorski.lib.audio.oscillators
 
                     if ( _phase < .5 ) {
                         tmp = ( _phase * 4.0 - 1.0 );
-                        output = ( 1.0 - tmp * tmp ) * .5;
+                        output = ( 1.0 - tmp * tmp );
                     }
                     else {
                         tmp = ( _phase * 4.0 - 3.0 );
-                        output = ( tmp * tmp - 1.0 ) * .5;
+                        output = ( tmp * tmp - 1.0 );
                     }
 
                     break;
@@ -79,11 +79,11 @@ package nl.igorski.lib.audio.oscillators
 
                     if ( _phase < .5 ) {
                         tmp = TWO_PI * ( _phase * 4.0 - 1.0 );
-                        output = ( 1.0 - tmp * tmp ) * .5;
+                        output = ( 1.0 - tmp * tmp );
                     }
                     else {
                         tmp = TWO_PI * ( _phase * 4.0 - 3.0 );
-                        output = ( tmp * tmp - 1.0 ) * .5;
+                        output = ( tmp * tmp - 1.0 );
                     }
                     break;
 
@@ -126,7 +126,7 @@ package nl.igorski.lib.audio.oscillators
         {
             _rate      = value;
             _phase     = 0.0;
-            _phaseIncr = 1 / ( AudioSequencer.SAMPLE_RATE * value );
+            _phaseIncr = value / AudioSequencer.SAMPLE_RATE;
         }
 
         public function get wave():String

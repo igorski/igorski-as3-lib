@@ -5,10 +5,10 @@ package nl.igorski.lib.audio.core
 
     import nl.igorski.lib.audio.caching.AudioCache;
 
-    import nl.igorski.lib.audio.core.AudioSequencer;
     import nl.igorski.lib.audio.core.interfaces.IBufferModifier;
     import nl.igorski.lib.audio.core.interfaces.IAudioProcessor;
     import nl.igorski.lib.audio.helpers.BulkCacher;
+    import nl.igorski.lib.audio.helpers.CachedEventsList;
     import nl.igorski.lib.audio.model.vo.VOAudioEvent;
     import nl.igorski.lib.audio.ui.interfaces.IAudioTimeline;
 
@@ -46,6 +46,8 @@ package nl.igorski.lib.audio.core
         /* temporary buffer used for writing in each cycle */
         private var _buffer                     :Sample;
 
+        private var _cachedEventsList           :CachedEventsList;
+
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
         public function AudioProcessor( voiceAmount:int = 1 ):void
@@ -58,6 +60,7 @@ package nl.igorski.lib.audio.core
             _voiceBuffers      = new <Sample>[];
             _oldCaches         = new <AudioCache>[];
             _oldCacheReadSteps = new <int>[];
+            _cachedEventsList  = new CachedEventsList();
 
             addVoices( voiceAmount );
         }
@@ -110,6 +113,7 @@ package nl.igorski.lib.audio.core
                 _oldCaches.push   ( new AudioCache( AudioSequencer.BYTES_PER_BAR, false ));
                 _voiceBuffers.push( new Sample( new AudioDescriptor(), AudioSequencer.BUFFER_SIZE ));
                 _oldCacheReadSteps.push( 0 );
+                _cachedEventsList.addCache();
             }
         }
 
@@ -254,8 +258,11 @@ package nl.igorski.lib.audio.core
                                     theSamples.splice( j, 1 );
                                     BulkCacher.addCachedSample( vo );
 
-                                    theCache.write( vo.sample, vo.delta * AudioSequencer.BYTES_PER_TICK, vo.sample.length );
-
+                                    if ( !_cachedEventsList.hasEvent( i,  vo.id ))
+                                    {
+                                        theCache.write( vo.sample, vo.delta * AudioSequencer.BYTES_PER_TICK, vo.sample.length );
+                                        _cachedEventsList.setEvent( i, vo.id );
+                                    }
                                 //}
                             }
                             // sample's buffer not full ? start caching the sample
@@ -276,10 +283,9 @@ package nl.igorski.lib.audio.core
                     if ( theSamples.length == 0 && AudioSequencer.stepPosition == 15
                         && getInvalidationDataForVoice( i ) == null )
                     {
-                        theCache.vectorsToMemory();
                         theCache.valid = true;
 
-                        trace( "CACHE " + i + "  VALID TRUE" );
+                        trace( "CACHE " + i + " VALID TRUE" );
 
                         if ( _oldCaches[ i ] != null )
                             _oldCaches[ i ].destroy();
@@ -363,6 +369,7 @@ package nl.igorski.lib.audio.core
         public function presynthesize( data:Vector.<Vector.<VOAudioEvent>> ):void
         {
             _invalidate = null;
+            _cachedEventsList.flushAllCaches();
 
             for ( var i:int = 0; i < data.length; ++i )
             {
@@ -375,7 +382,6 @@ package nl.igorski.lib.audio.core
                     _cachedVoices[ i ].write( vo.sample, vo.delta * AudioSequencer.BYTES_PER_TICK, vo.sample.length );
                 }
                 _cachedVoices[ i ].valid = true;
-                _cachedVoices[ i ].vectorsToMemory();
             }
         }
 
@@ -445,6 +451,7 @@ package nl.igorski.lib.audio.core
                     _cachedVoices[ i ].destroy();
 
                 _cachedVoices[ i ] = null;
+                _cachedEventsList.flushCache( i );
             }
         }
 
@@ -476,7 +483,7 @@ package nl.igorski.lib.audio.core
 
             for ( var i:int = 0; i < _invalidate.length; ++i )
             {
-                output = _invalidate[i];
+                output = _invalidate[ i ];
                 if ( output.voice == voice ) {
                     output.index = i;
                     return output;
@@ -517,15 +524,17 @@ package nl.igorski.lib.audio.core
                     // TODO: when inactive, we hear notes we just removed!! however, when
                     // we do uncomment this, we hear nothing during rebuild... BLEH!
                     // fix how ?
-//                    if ( !invalidation.destroyOld )
+//                    if ( !invalidation.destroyOld ) {
+                        trace("cloning last valid cache to old");
                         _oldCaches[ voice ].clone( theCache );
-//                    else
+//                    } else {
 //                        trace( "no cloning!");
-
+//                    }
                     if ( _oldCacheReadSteps[ voice ] == 0 )
                         _oldCacheReadSteps[ voice ] = CACHE_RELEASE_TIME;
 
                     theCache.destroy();
+                    _cachedEventsList.flushCache( voice );
                 }
 
                 // sequencer's first position ? remove voice from invalidation array

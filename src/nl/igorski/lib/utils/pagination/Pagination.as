@@ -41,7 +41,7 @@ package nl.igorski.lib.utils.pagination
         {
             destroyButtons();
 
-             _currentPage    = currentPage;
+             _currentPage   = currentPage;
             _maxPages       = Math.ceil( totalItems / itemsPerPage );
             _items_per_page = itemsPerPage;
 

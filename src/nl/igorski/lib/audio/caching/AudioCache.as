@@ -242,8 +242,7 @@ package nl.igorski.lib.audio.caching
         {
             if ( forceDestroy )
                 reset();
-
-            if ( _sample == null || _sample.frameCount < _length )
+            else if ( _sample == null || _sample.frameCount < _length )
                 _sample = new Sample( new AudioDescriptor(), _length );
         }
 
