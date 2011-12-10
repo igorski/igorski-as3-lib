@@ -1,6 +1,7 @@
 package nl.igorski.lib.audio.generators.waveforms.base
 {
     import nl.igorski.lib.audio.core.AudioSequencer;
+    import nl.igorski.lib.audio.core.interfaces.IBufferModifier;
     import nl.igorski.lib.audio.core.interfaces.IModifier;
     import nl.igorski.lib.audio.core.interfaces.IModulator;
     import nl.igorski.lib.audio.core.interfaces.IWave;
@@ -56,15 +57,15 @@ package nl.igorski.lib.audio.generators.waveforms.base
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        /*
-         * @aFrequency   the frequency in Hz of the note to be synthesized
-         * @aLength      the duration of the synthesized frequency
-         * @aDecayTime   decay of the generated soundwave
-         * @aAttackTime  attack curve of the generated soundwave
-         * @aReleaseTime release curve of the generated soundwave
-         * @aDelta       position of this wave in the sequencer
-         * @aVolume      volume of the generated wave
-         * @aPan         position in the stereo field of the generated wave
+        /**
+         * @param aFrequency   the frequency in Hz of the note to be synthesized
+         * @param aLength      the duration of the synthesized frequency
+         * @param aDecayTime   decay of the generated soundwave
+         * @param aAttackTime  attack curve of the generated soundwave
+         * @param aReleaseTime release curve of the generated soundwave
+         * @param aDelta       position of this wave in the sequencer
+         * @param aVolume      volume of the generated wave
+         * @param aPan         position in the stereo field of the generated wave
          */
         public function BaseWaveForm( aFrequency:Number, aLength:Number, aDecayTime:int, aAttackTime:Number, aReleaseTime:Number, aDelta:int, aVolume:Number, aPan:Number ):void
         {
@@ -188,12 +189,53 @@ package nl.igorski.lib.audio.generators.waveforms.base
             return _modifiers;
         }
 
+        /**
+         * IBufferModifiers work on entire buffer ranges at once, as such
+         * these are called by the AudioProcessor class. IBufferModifiers
+         * should only be used when the modifiers have constantly shifting
+         * properties, or for delay based effects
+         *
+         * @return {Vector.<IBufferModifier>}
+         */
+        public function getAllBufferModifiers():Vector.<IBufferModifier>
+        {
+            var out:Vector.<IBufferModifier> = new <IBufferModifier>[];
+
+            for each( var m:IModifier in _modifiers )
+            {
+                if ( m is IBufferModifier )
+                    out.push( m );
+            }
+            return out;
+        }
+
+        /**
+         * regular IModifier modifiers are performed during generation
+         * of a waveform, this method returns only these modifiers
+         *
+         * @return {Vector.<IModifier>}
+         */
+        public function getAllNonBufferModifiers():Vector.<IModifier>
+        {
+            var out  :Vector.<IModifier> = new <IModifier>[];
+            var isBuf:Boolean;
+
+            for each( var m:IModifier in _modifiers )
+            {
+                isBuf = m is IBufferModifier;
+
+                if ( !isBuf )
+                    out.push( m );
+            }
+            return out;
+        }
+
         public function setAllModifiers( value:Vector.<IModifier> ):void
         {
             if ( value != null )
                 _modifiers = value;
             else
-                _modifiers = new Vector.<IModifier>();
+                _modifiers = new <IModifier>[];
         }
 
         public function getModifier( modifierClass:Class ):IModifier
@@ -223,7 +265,8 @@ package nl.igorski.lib.audio.generators.waveforms.base
             {
                 theModifier = _modifiers[i];
 
-                if ( theModifier != null && theModifier is modifierClass ) {
+                if ( theModifier != null && theModifier is modifierClass )
+                {
                     _modifiers.splice( i,  1 );
                     theModifier = null;
                     break;

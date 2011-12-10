@@ -24,6 +24,7 @@
         {
             _text  = text;
             _width = width;
+
             addEventListener(Event.ADDED_TO_STAGE, initUI);
         }
 
@@ -48,11 +49,12 @@
         // override in subclass for custom skinning
         protected function draw():void
         {
-            tf.width    = _width;
-            tf.wordWrap = tf.multiline = true;
-            tf.htmlText = _text;
+            tf.width      = _width;
+            tf.wordWrap   = tf.multiline = true;
+            tf.htmlText   = _text;
 
-            tabEnabled  = false;
+            tabEnabled    =
+            tf.tabEnabled = false;
 
             addChild( tf );
         }

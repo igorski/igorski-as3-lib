@@ -6,14 +6,15 @@
     import flash.events.FocusEvent;
     import flash.text.TextFieldType;
     import flash.text.TextFieldAutoSize;
-    import flash.utils.*;
+    import flash.utils.setTimeout;
 
     import nl.igorski.lib.definitions.Fonts;
     import nl.igorski.lib.interfaces.IDestroyable;
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
     import nl.igorski.lib.ui.components.StdTextField;
+    import nl.igorski.lib.ui.forms.components.interfaces.ITabbableFormElement;
 
-    public class Input extends Sprite implements IFormElement, IDestroyable
+    public class Input extends Sprite implements IFormElement, ITabbableFormElement, IDestroyable
     {
         public static const BLUR    :String = "Input::BLUR";
 
@@ -21,7 +22,6 @@
         protected var bg            :Shape;
         protected var error_bg      :Shape;
         private var _text           :String;
-        private var intervalId      :uint;
 
         public var _placeHolderText :String;
 
@@ -60,6 +60,7 @@
                 removeChild( textField );
 
             var tv:String        = textField.text;
+
             textField            = new StdTextField( Fonts.INPUT_ERROR );
             textField.multiline  = _multiline;
             textField.wordWrap   = _wordwrap;
@@ -136,6 +137,16 @@
         //_________________________________________________________________________________________________________
         //                                                                            G E T T E R S / S E T T E R S
 
+        public function get autoSize():String
+        {
+            return textField.autoSize;
+        }
+
+        public function set autoSize( value:String ):void
+        {
+            textField.autoSize = value;
+        }
+
         public function set editable( value:Boolean ):void
         {
             if( value )
@@ -178,11 +189,16 @@
             bg.visible = value;
         }
 
+        override public function get tabIndex():int
+        {
+            return _tabIndex;
+        }
+
         override public function set tabIndex( value:int ):void
         {
             _tabIndex          = value;
-            tabEnabled         = true;
             textField.tabIndex = _tabIndex;
+            tabEnabled         = true;
         }
 
         override public function set tabEnabled( value:Boolean ):void
@@ -218,24 +234,25 @@
 
         // we must set a blank space String to prevent strange
         // behaviour occurring when setting focus on an empty text field
+
         private function handleTextFieldFocus( e:FocusEvent ):void
         {
             if ( textField.text == _placeHolderText )
             {
                 textField.text = " ";
                 textField.setSelection( 0, textField.text.length );
-                intervalId = setInterval( handleInterval, 1 );
+                setTimeout( handleInterval, 1 );
             }
         }
 
         private function handleTextFieldBlur( e:FocusEvent ):void
         {
-            if( textField.text == " " || textField.text == "" )
+            if ( textField.text == " " || textField.text == "" )
             {
                 textField.text = _placeHolderText;
 
             } else {
-                if( textField.text.substring( 0,1 ) == " ")
+                if ( textField.text.substring( 0,1 ) == " " )
                     textField.text = textField.text.substring( 1, textField.text.length );
             }
             dispatchEvent( new Event( BLUR ));
@@ -245,6 +262,7 @@
         //                                                                        P R O T E C T E D   M E T H O D S
 
         // override these in subclass for custom skinning
+
         protected function draw():void
         {
             bg       = new Shape();
@@ -319,7 +337,6 @@
         // here we clear the field's text content ( avoiding password field annoyances =p )
         private function handleInterval():void
         {
-            clearInterval( intervalId );
             textField.text = "";
         }
     }

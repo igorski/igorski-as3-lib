@@ -28,7 +28,7 @@ package nl.igorski.lib.ui.components
 
         protected var _min              :Number;
         protected var _max              :Number;
-        private var _size               :Number;
+        protected var _size             :Number;
         private var _default            :Number;
         private var _enabled            :Boolean;
         private var _callbackDelay      :Number;
@@ -132,6 +132,7 @@ package nl.igorski.lib.ui.components
         public function set enabled( value:Boolean ):void
         {
             _enabled = value;
+
             if ( value )
             {
                 handle.enabled = true;

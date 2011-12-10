@@ -9,6 +9,7 @@
     import nl.igorski.lib.interfaces.IDestroyable;
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
     import nl.igorski.lib.ui.components.StdTextField;
+    import nl.igorski.lib.ui.forms.components.interfaces.ITabbableFormElement;
 
     /**
      * a single select option, to be used with Select ( as part of
@@ -16,10 +17,11 @@
      * ...
      * @author Igor Zinken
      */
-    public class SelectOption extends Sprite implements IFormElement, IDestroyable
+    public class SelectOption extends Sprite implements IFormElement, ITabbableFormElement, IDestroyable
     {
         public static const SELECTED        :String = "SelectOption::SELECTED";
 
+        private var _tabIndex               :int;
         private var _checked                :Boolean = false;
         private var _value                  :String;
         private var _label                  :String;
@@ -80,6 +82,18 @@
         {
             _checked = value;
             _checked ? handleRollOver() : handleRollOut();
+        }
+
+        override public function get tabIndex():int
+        {
+            return _tabIndex;
+        }
+
+        override public function set tabIndex( value:int ):void
+        {
+            _tabIndex          = value;
+            super.tabIndex     = value;
+            tabEnabled         = true;
         }
 
         public function get val():*

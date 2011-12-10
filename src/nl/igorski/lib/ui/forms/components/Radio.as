@@ -8,16 +8,18 @@
     import nl.igorski.lib.interfaces.IDestroyable;
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
     import nl.igorski.lib.ui.components.StdTextField;
+    import nl.igorski.lib.ui.forms.components.interfaces.ITabbableFormElement;
 
     /**
      * a single RadioButton, to be used in a RadioGroup, not standalone.
      * ...
      * @author Igor Zinken
      */
-    public class Radio extends Sprite implements IFormElement, IDestroyable
+    public class Radio extends Sprite implements IFormElement, ITabbableFormElement, IDestroyable
     {
         public static const ACTIVATE	:String = "Radio::ACTIVATE";
 
+        protected var _tabIndex         :int;
         protected var bg				:Sprite;
         protected var checked_bg		:Sprite;
         protected var error_bg			:Sprite;
@@ -90,6 +92,18 @@
                 check();
             else
                 uncheck();
+        }
+
+        override public function get tabIndex():int
+        {
+            return _tabIndex;
+        }
+
+        override public function set tabIndex( value:int ):void
+        {
+            _tabIndex          = value;
+            super.tabIndex     = _tabIndex;
+            tabEnabled         = true;
         }
 
         public function get val():*

@@ -1,17 +1,16 @@
 package nl.igorski.lib.audio.modifiers
 {
     import nl.igorski.lib.audio.core.AudioSequencer;
-    import nl.igorski.lib.audio.core.interfaces.IBusModifier;
+    import nl.igorski.lib.audio.core.interfaces.IBufferModifier;
+    import nl.igorski.lib.audio.core.interfaces.IModifier;
 
-    public final class Delay implements IBusModifier
+    public final class Delay implements IModifier, IBufferModifier
     {
         /**
          * Created by IntelliJ IDEA.
          * User: igor.zinken
          * Date: 21-dec-2010
          * Time: 10:08:50
-         *
-         * TODO: currently only works as a bus modifier
          */
         private var _delayBuffer            :Vector.<Vector.<Number>>;
         private var _delayIndex             :int;
@@ -29,10 +28,10 @@ package nl.igorski.lib.audio.modifiers
          */
         public function Delay( delayTime:Number = 250, mix:Number = .2, feedback:Number = .7 ):void
         {
-            _time = Math.round(( AudioSequencer.SAMPLE_RATE * .001 ) * delayTime );
+            _time        = Math.round(( AudioSequencer.SAMPLE_RATE * .001 ) * delayTime );
             _delayBuffer = new Vector.<Vector.<Number>>( _time, true );
-            _mix       = mix;
-            _feedback  = feedback;
+            _mix         = mix;
+            _feedback    = feedback;
 
             for( var i:int = 0 ; i < _time ; ++i )
                 _delayBuffer[ i ] = new Vector.<Number>( 2, true );
@@ -43,12 +42,18 @@ package nl.igorski.lib.audio.modifiers
         //_________________________________________________________________________________________________________
         //                                                                                              P U B L I C
 
+        public function process( input:Number ):Number
+        {
+            // none, IBufferModifiers are processed by entire buffers
+            return 0.0;
+        }
+
         /**
          * run an audio signal through the delay line
          *
          * @param sampleBuffer {Array} containing two Number Vectors
          */
-        public function process( sampleBuffer:Array ):void
+        public function processBuffer( sampleBuffer:Array ):void
         {
             var inputLeft   :Vector.<Number> = sampleBuffer[ 0 ];
             var inputRight  :Vector.<Number> = sampleBuffer[ 1 ];
@@ -77,7 +82,7 @@ package nl.igorski.lib.audio.modifiers
                     _delayIndex = 0;
 
                 // stamp the echo onto the buffer
-                inputLeft[ i ]  += ( delayLeft * _mix );
+                inputLeft[ i ]  += ( delayLeft  * _mix );
                 inputRight[ i ] += ( delayRight * _mix );
             }
         }
@@ -98,6 +103,11 @@ package nl.igorski.lib.audio.modifiers
             return data;
         }
 
+        public function setData( data:Object ):void
+        {
+            trace( " TODO: SET DELAY DATA " );
+        }
+
         //_________________________________________________________________________________________________________
         //                                                                        G E T T E R S   /   S E T T E R S
         
@@ -112,7 +122,7 @@ package nl.igorski.lib.audio.modifiers
             _delayBuffer = new Vector.<Vector.<Number>>( _time, true );
 
             for( var i:int = 0 ; i < _time ; ++i )
-                _delayBuffer[i] = new Vector.<Number>( 2, true );
+                _delayBuffer[ i ] = new Vector.<Number>( 2, true );
         }
 
         public function get mix():Number

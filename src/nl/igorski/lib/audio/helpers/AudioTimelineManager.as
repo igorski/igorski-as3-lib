@@ -1,4 +1,4 @@
-package nl.igorski.lib.audio.core
+package nl.igorski.lib.audio.helpers
 {
     import flash.events.EventDispatcher;
     import nl.igorski.lib.audio.core.events.AudioTimelineEvent;

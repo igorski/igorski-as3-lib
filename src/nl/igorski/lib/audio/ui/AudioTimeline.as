@@ -7,7 +7,7 @@ package nl.igorski.lib.audio.ui
     import flash.utils.Dictionary;
 
     import nl.igorski.lib.audio.core.AudioSequencer;
-    import nl.igorski.lib.audio.core.AudioTimelineManager;
+    import nl.igorski.lib.audio.helpers.AudioTimelineManager;
     import nl.igorski.lib.audio.core.events.AudioTimelineEvent;
     import nl.igorski.lib.audio.definitions.Pitch;
     import nl.igorski.lib.audio.helpers.BulkCacher;
@@ -199,7 +199,7 @@ public class AudioTimeline extends Sprite implements IAudioTimeline
                 delete frequencies[ position ][ frequency ];
             }
             // immediately flush the cache for this timeline
-            AudioSequencer.invalidateCache( _voice, false, true );
+            AudioSequencer.invalidateCache( _voice, false, true, false, true );
         }
 
         /**

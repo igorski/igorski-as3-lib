@@ -14,6 +14,7 @@
 
     import nl.igorski.lib.ui.components.ScrollBlock;
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
+    import nl.igorski.lib.ui.forms.components.interfaces.ITabbableFormElement;
 
     /**
      * Select acts as the HTML SelectBox ( i.e. a pulldown menu )
@@ -21,7 +22,7 @@
      *
      * @author Igor Zinken
      */
-    public class Select extends Sprite implements IFormElement, IDestroyable
+    public class Select extends Sprite implements IFormElement, ITabbableFormElement, IDestroyable
     {
         public static const CHANGE      :String = "Select::CHANGE";
 
@@ -110,17 +111,17 @@
             }
         }
 
+        override public function get tabIndex():int
+        {
+            return _elements[ _elements.length - 1 ].tabIndex;
+        }
+
         override public function set tabIndex( value:int ):void
         {
             --value;
 
             for each( var s:SelectOption in _elements )
                 s.tabIndex = ++value;
-        }
-
-        override public function get tabIndex():int
-        {
-            return _elements[0].tabIndex;
         }
 
         //_________________________________________________________________________________________________________

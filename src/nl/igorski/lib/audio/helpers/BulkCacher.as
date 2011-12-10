@@ -97,7 +97,7 @@ package nl.igorski.lib.audio.helpers
                 return;
             }
             INSTANCE._isCaching = true;
-            var vo:VOAudioEvent = INSTANCE._audioEvents[0];
+            var vo:VOAudioEvent = INSTANCE._audioEvents[ 0 ];
 
             vo.addEventListener( AudioCacheEvent.CACHE_COMPLETED, INSTANCE.handleEventCached );
             vo.cache();
@@ -145,7 +145,7 @@ package nl.igorski.lib.audio.helpers
 
             for ( var i:int = 0; i < INSTANCE._cachedEvents.length; ++i )
             {
-                vo = INSTANCE._cachedEvents[i];
+                vo = INSTANCE._cachedEvents[ i ];
 
                 if ( vo.id == id )
                     return vo;
@@ -168,7 +168,7 @@ package nl.igorski.lib.audio.helpers
 
             for ( i = INSTANCE._cachedEvents.length - 1; i >= 0; --i )
             {
-                vo = INSTANCE._cachedEvents[i];
+                vo = INSTANCE._cachedEvents[ i ];
 
                 if ( vo.voice == voiceNum )
                 {

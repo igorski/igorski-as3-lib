@@ -1,6 +1,9 @@
-﻿package nl.igorski.lib.utils
+﻿package nl.igorski.lib.utils.statistics
 {
-    /**
+import nl.igorski.lib.utils.*;
+import nl.igorski.lib.utils.external.JavaScript;
+
+/**
      * a quick way to track pages / events in a HTML embedded application, note
      * that the asynchronous ( _gaq ) tracker by Google should be embedded in
      * the same HTML page containing the SWF application

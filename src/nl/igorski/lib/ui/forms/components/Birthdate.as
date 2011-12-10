@@ -4,6 +4,7 @@
     import flash.events.Event;
 
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
+    import nl.igorski.lib.ui.forms.components.interfaces.ITabbableFormElement;
 
     /**
      * BirthDate is a work in progress and currently only formats
@@ -11,9 +12,8 @@
      *
      * @author Igor Zinken
      */
-    public class Birthdate extends Sprite implements IFormElement
+    public class Birthdate extends Sprite implements IFormElement, ITabbableFormElement
     {
-
         private var year    :Input;
         private var month   :Input;
         private var day     :Input;
@@ -74,7 +74,8 @@
 
         override public function get tabIndex():int
         {
-            return year.tabIndex;
+            // return last element's index
+            return day.tabIndex;
         }
 
         //_________________________________________________________________________________________________________

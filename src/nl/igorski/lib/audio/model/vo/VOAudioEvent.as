@@ -98,7 +98,7 @@ package nl.igorski.lib.audio.model.vo
             // 16-note context ( one tick = sixteenth note )
             var sampleLength:int = AudioSequencer.BYTES_PER_TICK * length + 0.5|0;
             sample = new AudioCache( sampleLength );
-            wave  = IWaveCloner.clone( AudioSequencer.getVoice( voice ), frequency, length );
+            wave   = IWaveCloner.clone( AudioSequencer.getVoice( voice ), frequency, length );
 
             // synthesize this event into audio
             /* NON-threaded mode, fastest, but will hog CPU resources from the Flash Player
@@ -171,6 +171,9 @@ package nl.igorski.lib.audio.model.vo
 
             if ( m > _maximum )
                 m = _maximum;
+
+            if ( cacheBuffer == null )
+                return true;
 
             for ( _progress; _progress < m; ++_progress )
                 wave.generate( cacheBuffer, _progress );

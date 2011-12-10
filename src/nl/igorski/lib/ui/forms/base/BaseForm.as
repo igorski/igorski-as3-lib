@@ -22,6 +22,7 @@
     import nl.igorski.lib.ui.forms.components.SubmitButton;
     import nl.igorski.lib.ui.forms.components.TextArea;
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
+    import nl.igorski.lib.ui.forms.components.interfaces.ITabbableFormElement;
     import nl.igorski.lib.utils.Destroyer;
 
     /**
@@ -355,16 +356,19 @@
                             break;
                     }
                     formElements.push( element );
+
+                    if ( element is ITabbableFormElement ) {
+                        element.tabIndex = curTabIndex;
+                        curTabIndex      = element.tabIndex + 1;
+                    }
                 }
-                element.tabIndex = curTabIndex;
-                curTabIndex    = element.tabIndex + 1;
             }
             // here we set the Select elements as the highest children in the DisplayList
             // as they can overlap other form elements when they're opened
             for ( var i:int = formElements.length - 1; i > 0; --i )
             {
-                if ( formElements[i] is Select )
-                    swapChildren( formElements[i], getChildAt( numChildren - 1 ));
+                if ( formElements[ i ] is Select )
+                    swapChildren( formElements[ i ], getChildAt( numChildren - 1 ));
             }
             _formWidth = width;
         }

@@ -8,22 +8,24 @@
     import nl.igorski.lib.interfaces.IDestroyable;
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
     import nl.igorski.lib.ui.components.StdTextField;
+    import nl.igorski.lib.ui.forms.components.interfaces.ITabbableFormElement;
 
     /**
      * ...
      * @author Igor Zinken
      */
-    public class Checkbox extends Sprite implements IFormElement, IDestroyable
+    public class Checkbox extends Sprite implements IFormElement, ITabbableFormElement, IDestroyable
     {
-        private var bg			:Sprite;
-        private var checked_bg	:Sprite;
-        private var error_bg	:Sprite;
+        protected var bg            :Sprite;
+        protected var checked_bg    :Sprite;
+        protected var error_bg      :Sprite;
 
-        private var _checked	:Boolean = false;
-        private var _title		:String = '';
-        private var _labelWidth	:int = 0;
+        protected var _tabIndex     :int = 0;
+        protected var _checked      :Boolean = false;
+        protected var _title        :String = "";
+        protected var _labelWidth   :int = 0;
 
-        private var label		:StdTextField = new StdTextField( Fonts.FORM_TEXT );
+        protected var label         :StdTextField = new StdTextField( Fonts.FORM_TEXT );
 
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
@@ -114,6 +116,18 @@
             _checked = ( value == 1 );
         }
 
+        override public function get tabIndex():int
+        {
+            return _tabIndex;
+        }
+
+        override public function set tabIndex( value:int ):void
+        {
+            _tabIndex          = value;
+            super.tabIndex     = _tabIndex;
+            tabEnabled         = true;
+        }
+
         //_________________________________________________________________________________________________________
         //                                                                              E V E N T   H A N D L E R S
 
@@ -173,8 +187,8 @@
             }
             error_bg.alpha = 0;
 
-            addChild(bg);
-            addChild(error_bg);
+            addChild( bg );
+            addChild( error_bg );
 
             label.wordWrap = true;
             label.width = _labelWidth;

@@ -7,8 +7,5 @@ package nl.igorski.lib.ui.forms.components.interfaces
 
         function doError():void;
         function undoError():void;
-
-        function get tabIndex():int;
-        function set tabIndex( value:int ):void;
     }
 }

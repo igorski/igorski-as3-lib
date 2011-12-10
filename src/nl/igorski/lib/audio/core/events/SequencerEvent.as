@@ -13,7 +13,7 @@ package nl.igorski.lib.audio.core.events
         public static const START           :String = "SequencerEvent::START";
         public static const STOP            :String = "SequencerEvent::STOP";
         public static const PAUSE           :String = "SequencerEvent::PAUSE";
-        public static const TEMPO_CHANGE    :String = "SequencerEvent::TEMPO_CHANGE";
+        public static const REGISTER_TEMPO    :String = "SequencerEvent::TEMPO_CHANGE";
 
         public var value                    :Number;
 

@@ -1,9 +1,6 @@
 package nl.igorski.lib.audio.core
 {
-import com.noteflight.standingwave3.elements.AudioDescriptor;
-import com.noteflight.standingwave3.elements.Sample;
-
-import flash.events.EventDispatcher;
+    import flash.events.EventDispatcher;
     import flash.events.SampleDataEvent;
     import flash.media.Sound;
     import flash.media.SoundChannel;
@@ -11,12 +8,11 @@ import flash.events.EventDispatcher;
     import flash.utils.getTimer;
 
     import nl.igorski.lib.audio.core.events.SequencerEvent;
-    import nl.igorski.lib.audio.core.interfaces.IBusModifier;
+    import nl.igorski.lib.audio.core.interfaces.IBufferModifier;
     import nl.igorski.lib.audio.core.interfaces.IModifier;
     import nl.igorski.lib.audio.core.interfaces.IModulator;
-    import nl.igorski.lib.audio.core.interfaces.IVoice;
-    import nl.igorski.lib.audio.generators.BufferGenerator;
-    import nl.igorski.lib.audio.generators.Synthesizer;
+    import nl.igorski.lib.audio.core.interfaces.IAudioProcessor;
+    import nl.igorski.lib.audio.core.AudioProcessor;
     import nl.igorski.lib.audio.generators.waveforms.base.BaseWaveForm;
     import nl.igorski.lib.audio.model.vo.VOAudioEvent;
     import nl.igorski.lib.audio.ui.interfaces.IAudioTimeline;
@@ -30,34 +26,34 @@ import flash.events.EventDispatcher;
          * Date: 20-dec-2010
          * Time: 14:43:22
          *
-         * Synthesizer is a singleton class as multiple instances each operating in their own buffer
+         * AudioSequencer is a singleton class as multiple instances each operating in their own buffer
          * create a massive glitchfest, you can instantiate more voices for multi-timbral usage */
 
-        private static var INSTANCE         :AudioSequencer;
+        private static var INSTANCE                 :AudioSequencer;
 
-        public static var BUFFER_SIZE       :int;
-        public static var SAMPLE_RATE       :int = 44100;
-        public static var TEMPO             :Number;
-        public static var BYTES_PER_SAMPLE  :int = 8;
-        public static var BYTES_PER_BEAT    :int;
-        public static var BYTES_PER_BAR     :int;
-        public static var BYTES_PER_TICK    :int;
-        public static var AMOUNT_OF_VOICES  :int = 3;
-        public static var STEPS_PER_BAR     :int = 16;
+        public static var BUFFER_SIZE               :int;
+        public static var SAMPLE_RATE               :int = 44100;
+        public static var TEMPO                     :Number;
+        public static var BYTES_PER_SAMPLE          :int = 8;
+        public static var BYTES_PER_BEAT            :int;
+        public static var BYTES_PER_BAR             :int;
+        public static var BYTES_PER_TICK            :int;
+        public static var AMOUNT_OF_VOICES          :int = 3;
+        public static var STEPS_PER_BAR             :int = 16;
 
-        private var _sound                  :Sound;
-        private var _soundChannel           :SoundChannel;
-        private var _latency                :Number;
-        private var _tempo                  :Number;
-        private var _volume                 :Number = 1;
+        private var _sound                          :Sound;
+        private var _soundChannel                   :SoundChannel;
+        private var _latency                        :Number;
+        private var _tempo                          :Number;
+        private var _volume                         :Number = 1;
 
-        private var _lastBuffer             :int;
-        private var _position               :int;
-        private var _stepPosition           :int = 0;
+        private var _lastBuffer                     :int;
+        private var _position                       :int;
+        private var _stepPosition                   :int = 0;
 
         // you can override this with custom synthesizers
-        protected static const SYNTHESIZER_CLASS    :Class = Synthesizer;
-        private var _synthesizer                    :IVoice;
+        protected static const PROCESSOR_CLASS      :Class = AudioProcessor;
+        private var _processor                      :IAudioProcessor;
         private var _voices                         :Vector.<BaseWaveForm>;
 
         // bus modifiers ( work on the sum of all sounds ( i.e. a master channel insert ))
@@ -108,8 +104,8 @@ import flash.events.EventDispatcher;
         {
             if ( createObjects )
             {
-                // create a synthesizer for audio output
-                _synthesizer    = new SYNTHESIZER_CLASS( AMOUNT_OF_VOICES );
+                // create an AudioProcessor instance for audio output
+                _processor    = new PROCESSOR_CLASS( AMOUNT_OF_VOICES );
 
                 // create a voice vector for multiple wave shapes, note we don't set
                 // it to a fixed AMOUNT_OF_VOICES width as we like to be able to add/remove these
@@ -139,7 +135,7 @@ import flash.events.EventDispatcher;
             INSTANCE._sound.addEventListener( SampleDataEvent.SAMPLE_DATA, INSTANCE.processAudio );
 
             // add events at the first sequencer position
-            // to the synthesizer, as it otherwise gets skipped!
+            // to the processor, as it otherwise gets skipped!
             if ( INSTANCE._stepPosition == 0 )
                 INSTANCE.handleTick();
 
@@ -161,7 +157,7 @@ import flash.events.EventDispatcher;
             INSTANCE.dispatchEvent( new SequencerEvent( SequencerEvent.PAUSE ));
         }
 
-        /*
+        /**
          * "stopping" the sequencer is actually waiting for the
          * current processAudio method to complete, and then
          * dispatching the actual stop event, this prevents buffer
@@ -178,7 +174,7 @@ import flash.events.EventDispatcher;
             if ( INSTANCE._isPlaying )
                 stop();
 
-            INSTANCE._synthesizer  = new SYNTHESIZER_CLASS( AMOUNT_OF_VOICES );
+            INSTANCE._processor  = new PROCESSOR_CLASS( AMOUNT_OF_VOICES );
             INSTANCE._busModifiers = [];
             INSTANCE.init( false );
 
@@ -194,13 +190,14 @@ import flash.events.EventDispatcher;
             {
                 var VOs:Vector.<VOAudioEvent> = new Vector.<VOAudioEvent>();
 
-                for ( var i:int = 0; i < STEPS_PER_BAR; ++i ) {
+                for ( var i:int = 0; i < STEPS_PER_BAR; ++i )
+                {
                     for each ( var vo:VOAudioEvent in tl.getFrequencies( i ))
                         VOs.push( vo );
                 }
                 tlVO.push( VOs );
             }
-            INSTANCE._synthesizer.presynthesize( tlVO );
+            INSTANCE._processor.presynthesize( tlVO );
         }
 
         public static function clearBus():void
@@ -219,8 +216,8 @@ import flash.events.EventDispatcher;
 
             if ( INSTANCE._voices.length > AMOUNT_OF_VOICES )
                 ++AMOUNT_OF_VOICES;
-            // TODO: i have been fucking with this... restore inside if statement?? check w/ 16 step mode
-            INSTANCE._synthesizer.addVoices( AMOUNT_OF_VOICES );
+
+            INSTANCE._processor.addVoices( AMOUNT_OF_VOICES );
         }
 
         /**
@@ -262,7 +259,7 @@ import flash.events.EventDispatcher;
          * same functions as the above for voice modifiers, only
          * these are bus specific
          */
-        public static function addBusModifier( modifier:IBusModifier, index:int = 0 ):void
+        public static function addBusModifier( modifier:IBufferModifier, index:int = 0 ):void
         {
             while ( index > INSTANCE._busModifiers.length )
             {
@@ -277,7 +274,7 @@ import flash.events.EventDispatcher;
             INSTANCE._busModifiers[ index ] = null;
         }
 
-        public static function getBusModifier( index:int = 0 ):IBusModifier
+        public static function getBusModifier( index:int = 0 ):IBufferModifier
         {
             return INSTANCE._busModifiers[ index ];
         }
@@ -339,12 +336,22 @@ import flash.events.EventDispatcher;
                 return null;
 
             var out:Array = [];
-            for each( var m:IBusModifier in modifiers )
+            for each( var m:IBufferModifier in modifiers )
             {
                 if ( m.getData() != null )
                     out.push( { type: getQualifiedClassName( m ), params: m.getData() } );
             }
             return out;
+        }
+
+        /**
+         * in case we're throwing the current sequencing session
+         * around ( usually a tempo change ) we must make sure
+         * the temporary read buffers are nulled so they can be rebuild
+         */
+        public static function clearTemporaryBuffers():void
+        {
+            INSTANCE._processor.clearTemporaryBuffers();
         }
 
         //_________________________________________________________________________________________________________
@@ -385,7 +392,7 @@ import flash.events.EventDispatcher;
             BYTES_PER_TICK      = BYTES_PER_BEAT * .25;
             BYTES_PER_BAR       = BYTES_PER_BEAT * 4;
 
-            if ( INSTANCE._synthesizer != null )
+            if ( INSTANCE._processor != null )
                 invalidateCache();
         }
 
@@ -411,13 +418,13 @@ import flash.events.EventDispatcher;
             for( var i:int = 0; i < _timelines.length; ++i )
             {
                 // collect all audio event objects at the current step position for each timeline
-                for each ( var vo:VOAudioEvent in _timelines[i].getFrequencies( _stepPosition ))
-                    _synthesizer.addEvent( vo, i );
+                for each ( var vo:VOAudioEvent in _timelines[ i ].getFrequencies( _stepPosition ))
+                    _processor.addEvent( vo, i );
 
                 // update timeline pointer position, keeping the latency in mind! We also use
-                // the _position as it is the accurate representation of the sequencer step
+                // the SampleDataEvent position as it is the accurate representation of the sequencer step
                 // in the currently audible audio stream
-                _timelines[i].updatePosition( MathTool.roundPos(( _position - _latency ) / BYTES_PER_TICK ) - 1 );
+                _timelines[ i ].updatePosition( MathTool.roundPos(( _position + _latency ) / BYTES_PER_TICK ) - 1 );
             }
         }
 
@@ -433,12 +440,24 @@ import flash.events.EventDispatcher;
             //var to:Number = _position + BUFFER_SIZE * ( tempo * 9.448223733938e-8 );
             //_lastBuffer = getTimer();
 
-            _synthesizer.synthesize();
-
             var doModifiers:Boolean = ( _busModifiers.length > 0 );
 
+            // do we need to process buffer modifiers on individual voices ?
+            var bufferModifiers:Boolean = false;
+
+            for ( var i:int = 0; i < AMOUNT_OF_VOICES; ++i )
+            {
+                if ( getVoice( i ).getAllBufferModifiers().length > 0 )
+                {
+                    bufferModifiers = true;
+                    break;
+                }
+            }
+
+            _processor.synthesize( !bufferModifiers );
+
             // recalculate sequencer position at the sample level
-            for ( var i:int = 0; i < BUFFER_SIZE; ++i )
+            for ( i = 0; i < BUFFER_SIZE; ++i )
             {
                 if ( _position % BYTES_PER_TICK == 0 )
                 {
@@ -455,20 +474,24 @@ import flash.events.EventDispatcher;
                     _position = 0;
             }
 
+            // process the buffer modifiers for each voice
+            if ( bufferModifiers )
+                _processor.processBufferModifiers();
+
             // process the bus modifiers
             if ( doModifiers )
             {
-                for each( var m:IBusModifier in _busModifiers )
-                    m.process( _synthesizer.sample.channelData );
+                for each( var m:IBufferModifier in _busModifiers )
+                    m.processBuffer( _processor.sample.channelData );
 
-                _synthesizer.sample.invalidateSampleMemory();
-                _synthesizer.sample.commitChannelData();
+                _processor.sample.invalidateSampleMemory();
+                _processor.sample.commitChannelData();
             }
 
-            _synthesizer.sample.changeGain( _volume );
+            _processor.sample.changeGain( _volume );
 
             // actual output of the synthesized samples
-            _synthesizer.sample.writeBytes( e.data, 0, BUFFER_SIZE );
+            _processor.sample.writeBytes( e.data, 0, BUFFER_SIZE );
 
             if ( _doStop )
             {
@@ -483,19 +506,24 @@ import flash.events.EventDispatcher;
         //_________________________________________________________________________________________________________
         //                                                                            P R I V A T E   M E T H O D S
 
-        /*
-         * clears a currently cached audio buffer in the Synthesizer class
+        /**
+         * clears a currently cached audio buffer in the AudioProcessor class
          *
-         * @param voice              specify a voice index to invalidate for that voice, not passing this argument clears all voices
-         * @param invalidateChildren also invalidates all VO audioEvent caches belonging to the voice's samples
-         * @param immediateFlush     when true, caches are invalidated on next synthesize cycle rather than
-         *                           on the first step of the sequencer's loop
-         * @param recacheChildren    if children are to be invalidated this Boolean dictates whether their caches
-         *                           are to be rebuilt immediately
+         * @param aVoice             {int} index of the voice in the AudioSequencer
+         * @param invalidateChildren {Boolean} invalidate all voice's VO's ( when voice properties have changed
+         *                           such as envelopes and inserts )
+         * @param immediateFlush     {Boolean} whether to flush ( the actual invalidation and discarding of previously
+         *                           cached samples ) on the first step of the next bar ( when false ) or to flush on
+         *                           next synthesize cycle ( when true )
+         * @param recacheChildren    {Boolean} when children are to be invalidated, this Boolean dictates whether their
+         *                           caches are to be rebuilt immediately by addition to the BulkCacher
+         * @param destroyOldCache    {Boolean} whether we disallow cloning the current ( to be invalidated )
+         *                           cache into an old cache ( which is read from during the building of a new
+         *                           cache ). Defaults to false
          */
-        public static function invalidateCache( voice:int = -1, invalidateChildren:Boolean = false, immediateFlush:Boolean = false, recacheChildren:Boolean = true ):void
+        public static function invalidateCache( aVoice:int = -1, invalidateChildren:Boolean = false, immediateFlush:Boolean = false, recacheChildren:Boolean = true, destroyOldCache:Boolean = false ):void
         {
-            INSTANCE._synthesizer.invalidateCache( voice, invalidateChildren, immediateFlush, recacheChildren );
+            INSTANCE._processor.invalidateCache( aVoice, invalidateChildren, immediateFlush, recacheChildren, destroyOldCache );
         }
 
         private function doStop():void

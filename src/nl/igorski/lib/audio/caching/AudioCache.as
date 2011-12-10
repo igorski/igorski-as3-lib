@@ -90,18 +90,22 @@ package nl.igorski.lib.audio.caching
                 return;
                 
             if ( length == -1 )
-                length = data[ 0 ].length;
+            {
+                if ( data is Array )
+                    length = data[ 0 ].length;
+
+                else if ( data is AudioCache )
+                    length = data.length;
+            }
 
             if ( position + length > _length )
                 length = _length - position;
 
             if ( _sample == null )
-                _sample = new Sample( new AudioDescriptor(), _length );
+                buildSample();
 
             if ( data is Array )
             {
-                trace( "write from vectors" );
-
                 var channels:Array = _sample.channelData;
                 for ( var i:int = position, j:int = position + length; i < j; ++i )
                 {
@@ -112,8 +116,6 @@ package nl.igorski.lib.audio.caching
             }
             else if ( data is AudioCache )
             {
-                trace( "write from Sample memory" );
-
                 _sample.mixInDirectAccessSource( AudioCache( data ).sample, 0, 1.0, position, length );
             }
 
@@ -159,10 +161,8 @@ package nl.igorski.lib.audio.caching
         {
             if ( source is Array )
             {
-                trace( "clone from vectors" );
-
                 _length = source[ 0 ].length;
-                _sample = new Sample( new AudioDescriptor(), _length );
+                buildSample();
 
                 _sample.commitSlice( source[ 0 ], 0, 0 );
                 _sample.commitSlice( source[ 1 ], 1, 0 );
@@ -171,10 +171,8 @@ package nl.igorski.lib.audio.caching
             }
             else if ( source is AudioCache )
             {
-                trace( "clone from Sample Memory" );
-
                 _length = AudioCache( source ).length;
-                _sample = new Sample( new AudioDescriptor(), _length );
+                buildSample();
                 _sample.mixInDirectAccessSource( AudioCache( source ).sample, 0, 1.0, 0, _length );
             }
             _valid = true;
@@ -200,7 +198,7 @@ package nl.igorski.lib.audio.caching
         public function vectorsToMemory():void
         {
             if ( _sample == null )
-                _sample = new Sample( new AudioDescriptor(), _length );
+                buildSample();
 
             _sample.commitChannelData();
         }
@@ -233,13 +231,20 @@ package nl.igorski.lib.audio.caching
 
         public function destroy():void
         {
-            trace( "AudioCache::DESTROY" );
-
             if ( _sample != null )
                 _sample.destroy();
 
             _sample = null;
             _valid  = false;
+        }
+
+        public function buildSample( forceDestroy:Boolean = false ):void
+        {
+            if ( forceDestroy )
+                reset();
+
+            if ( _sample == null || _sample.frameCount < _length )
+                _sample = new Sample( new AudioDescriptor(), _length );
         }
 
         private final function reset():void
@@ -250,7 +255,7 @@ package nl.igorski.lib.audio.caching
             _valid            = false;
             _cacheFillCounter = 0;
 
-            _sample     = new Sample( new AudioDescriptor(), _length );
+            buildSample();
         }
     }
 }

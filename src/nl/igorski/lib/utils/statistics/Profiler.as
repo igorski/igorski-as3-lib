@@ -1,46 +1,51 @@
-﻿package nl.igorski.lib.utils
+package nl.igorski.lib.utils.statistics
 {
-    import flash.external.ExternalInterface;
-
-    /*
-     * just a quick way to pass and receive
-     * values from and to javascript wrapped in
-     * ExternalInterface available statements
+    import flash.utils.getTimer;
+    /**
+     * ...
+     * @author Igor Zinken
+     * 
+     * Profiler is a class for quickly testing the time spent performing
+     *          tasks. Note: the function of this class is to give a general
+     *          idea which function performs faster than others, for more accurate
+     *          timing tests, these functions should be run in inline code
      */
-    public final class JavaScript
+    public final class Profiler 
     {
+        private var startTime   :int;
+
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function JavaScript()
+        /*
+         * @autoStart set to true to immediately set the startTime
+         *            during instantiation
+         */
+        public function Profiler( autoStart:Boolean = true ) 
         {
-            throw new Error( "cannot instantiate JavaScript" );
+            if ( autoStart )
+                start();
         }
 
         //_________________________________________________________________________________________________________
         //                                                                              P U B L I C   M E T H O D S
 
-        /**
-         * calls a JavaScript function and passes optional arguments
-         *
-         * @param javascriptFunction String name of the function embedded in the HTML page
-         * @param functionArguments  several comma-separated values to be passed to the function */
-
-        public static function call( javascriptFunction:String, ...functionArguments ):void
-        {
-            if ( ExternalInterface.available )
-                ExternalInterface.call( javascriptFunction, functionArguments );
-        }
-
-        /**
-         * call a function and retrieve it's return value
-         *
-         * @param  javascriptFunction String name of the function embedded in the HTML page
+        /*
+         * set the start time, should be set when
+         * starting the test
          */
-        public static function get( javascriptFunction:String ):*
+        public function start():void
         {
-            if ( ExternalInterface.available )
-                return ExternalInterface.call( javascriptFunction );
+            startTime = getTimer();
+        }
+        
+        /*
+         * set the "end point" for the test, and immediately
+         * return the time difference between end and start points
+         */
+        public function stop():int
+        {
+            return ( getTimer() - startTime );
         }
 
         //_________________________________________________________________________________________________________

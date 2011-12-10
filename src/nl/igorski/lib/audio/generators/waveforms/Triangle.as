@@ -1,5 +1,6 @@
 package nl.igorski.lib.audio.generators.waveforms
 {
+    import nl.igorski.lib.audio.core.interfaces.IBufferModifier;
     import nl.igorski.lib.audio.core.interfaces.IModifier;
     import nl.igorski.lib.audio.core.interfaces.IModulator;
     import nl.igorski.lib.audio.generators.waveforms.base.BaseWaveForm;
@@ -35,6 +36,9 @@ package nl.igorski.lib.audio.generators.waveforms
             var theModulator:IModulator;
             var theModifier :IModifier;
 
+            // we cache this result
+            var theModifiers :Vector.<IModifier> = getAllNonBufferModifiers();
+
             var l           :Vector.<Number> = buffer[0];
             var r           :Vector.<Number> = buffer[1];
 
@@ -44,11 +48,11 @@ package nl.igorski.lib.audio.generators.waveforms
 
                 if( _phase < .5 ) {
                     tmp = ( _phase * 4.0 - 1.0 );
-                    amplitude = ( 1.0 - tmp * tmp ) * env * env * .5;
+                    amplitude = ( 1.0 - tmp * tmp ) * env * env;
                 }
                 else {
                     tmp = ( _phase * 4.0 - 3.0 );
-                    amplitude = ( tmp * tmp - 1.0 ) * env * env * .5;
+                    amplitude = ( tmp * tmp - 1.0 ) * env * env;
                 }
 
                 _phase += _phaseIncr;
@@ -78,25 +82,23 @@ package nl.igorski.lib.audio.generators.waveforms
                 // optional modulation of the wave
                 if ( _modulators.length > 0 )
                 {
-                    for ( var m:int = 0; m < _modulators.length; ++m )
+                    for each( theModulator in _modulators )
                     {
-                        theModulator = _modulators[m];
                         if ( theModulator != null )
                             amplitude = theModulator.modulate( amplitude );
                     }
                 }
                 // optional modifiers
-                if ( _modifiers.length > 0 )
+                if ( theModifiers.length > 0 )
                 {
-                    for ( m = 0; m < _modifiers.length; ++m )
+                    for each( theModifier in theModifiers )
                     {
-                        theModifier = _modifiers[m];
                         if ( theModifier != null )
                             amplitude += theModifier.process( amplitude );
                     }
                 }
-                l[i] += amplitude * _volumeL;
-                r[i] += amplitude * _volumeR;
+                l[ i ] += amplitude * _volumeL;
+                r[ i ] += amplitude * _volumeR;
 
                 ++_bufferedSamples;
                 if ( _bufferedSamples == _sampleLength )

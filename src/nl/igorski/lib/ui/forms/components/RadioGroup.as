@@ -6,6 +6,7 @@
     import nl.igorski.lib.interfaces.IDestroyable;
 
     import nl.igorski.lib.ui.forms.components.interfaces.IFormElement;
+    import nl.igorski.lib.ui.forms.components.interfaces.ITabbableFormElement;
 
     /**
      * a collection of multiple radio buttons, to be used if multiple radio buttons
@@ -14,7 +15,7 @@
      * ...
      * @author Igor Zinken
      */
-    public class RadioGroup extends Sprite implements IFormElement, IDestroyable
+    public class RadioGroup extends Sprite implements IFormElement, ITabbableFormElement, IDestroyable
     {
 
         public static const CHANGE  :String = "RadioGroup::CHANGE";
@@ -107,7 +108,7 @@
 
         override public function get tabIndex():int
         {
-            return _radios[0].tabIndex;
+            return _radios[ _radios.length - 1 ].tabIndex;
         }
 
         //_________________________________________________________________________________________________________

@@ -1,4 +1,4 @@
-﻿package nl.igorski.lib.utils
+﻿package nl.igorski.lib.utils.external
 {
 
     /**

@@ -54,7 +54,7 @@ package nl.igorski.lib.audio.oscillators
             {
                 case LFO_SINE_WAVE:
 
-                    if( _phase < .5 ) {
+                    if ( _phase < .5 ) {
                         tmp = ( _phase * 4.0 - 1.0 );
                         output = ( 1.0 - tmp * tmp ) * .5;
                     }
@@ -69,7 +69,7 @@ package nl.igorski.lib.audio.oscillators
 
                     output = ( _phase - int( _phase )) * 4;
 
-                    if( output < 2 )
+                    if ( output < 2 )
                         output -= 1;
                     else
                         output = 3 - output;
@@ -77,7 +77,7 @@ package nl.igorski.lib.audio.oscillators
 
                 case LFO_SQUARE_WAVE:
 
-                    if( _phase < .5 ) {
+                    if ( _phase < .5 ) {
                         tmp = TWO_PI * ( _phase * 4.0 - 1.0 );
                         output = ( 1.0 - tmp * tmp ) * .5;
                     }

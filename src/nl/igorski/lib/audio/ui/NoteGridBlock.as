@@ -7,7 +7,7 @@ package nl.igorski.lib.audio.ui
     import flash.ui.Mouse;
     import flash.ui.MouseCursor;
     import flash.utils.setTimeout;
-    import nl.igorski.lib.audio.core.AudioTimelineManager;
+    import nl.igorski.lib.audio.helpers.AudioTimelineManager;
     import nl.igorski.lib.audio.ui.interfaces.IGridBlock;
     import nl.igorski.lib.interfaces.IDestroyable;
 

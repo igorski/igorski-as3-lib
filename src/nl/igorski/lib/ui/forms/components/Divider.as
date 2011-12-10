@@ -55,7 +55,7 @@
             with( line.graphics )
             {
                 lineStyle( 1 );
-                lineGradientStyle( GradientType.LINEAR, [0xFFFFFF, 0x666666], [0.65, 0.65], [0, 255], matrix );
+                lineGradientStyle( GradientType.LINEAR, [ 0xFFFFFF, 0x666666 ], [ 0.65, 0.65 ], [ 0, 255 ], matrix );
                 lineTo( _width, 0 );
             }
             line.y = _height * .5;
