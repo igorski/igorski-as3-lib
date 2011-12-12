@@ -25,7 +25,15 @@ package nl.igorski.lib.audio.modulators
 
         override public function modulate( value:Number ):Number
         {
-            return value * generate();
+            var theVolume:Number = .5;
+
+            // these can get loud
+            if ( _wave == LFO_SINE_WAVE )
+                theVolume = 0.05;
+            else if ( _wave == LFO_SQUARE_WAVE )
+                theVolume = 0.03;
+
+            return value * ( generate() * theVolume );
         }
 
         //_____________________________________________________________________________________________________________

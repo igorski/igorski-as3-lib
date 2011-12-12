@@ -22,16 +22,16 @@ package nl.igorski.lib.audio.modifiers
         //                                                                                    C O N S T R U C T O R
 
         /**
-         * @param delayTime {Number} in milliseconds, time between consecutive repeats
-         * @param mix       {Number} 0-1, percentage of dry/wet mix
-         * @param feedback  {Number} 0-1, amount of repeats
+         * @param aDelayTime {Number} in milliseconds, time between consecutive repeats
+         * @param aMix       {Number} 0-1, percentage of dry/wet mix
+         * @param aFeedback  {Number} 0-1, amount of repeats
          */
-        public function Delay( delayTime:Number = 250, mix:Number = .2, feedback:Number = .7 ):void
+        public function Delay( aDelayTime:Number = 250, aMix:Number = .2, aFeedback:Number = .7 ):void
         {
-            _time        = Math.round(( AudioSequencer.SAMPLE_RATE * .001 ) * delayTime );
+            _time        = Math.round(( AudioSequencer.SAMPLE_RATE * .001 ) * aDelayTime );
             _delayBuffer = new Vector.<Vector.<Number>>( _time, true );
-            _mix         = mix;
-            _feedback    = feedback;
+            _mix         = aMix;
+            _feedback    = aFeedback;
 
             for( var i:int = 0 ; i < _time ; ++i )
                 _delayBuffer[ i ] = new Vector.<Number>( 2, true );
@@ -91,6 +91,7 @@ package nl.igorski.lib.audio.modifiers
         {
             // might as well be OFF - we do this to prevent it from
             // being saved as it's not removed from the sequencer's busModifiers
+
             if ( mix == 0 && feedback == 0 )
                 return null;
             
@@ -118,11 +119,14 @@ package nl.igorski.lib.audio.modifiers
 
         public function set delayTime( value:Number ):void
         {
-            _time = Math.round(( AudioSequencer.SAMPLE_RATE * .001 ) * delayTime );
+            _time        = Math.round(( AudioSequencer.SAMPLE_RATE * .001 ) * value );
             _delayBuffer = new Vector.<Vector.<Number>>( _time, true );
 
-            for( var i:int = 0 ; i < _time ; ++i )
+            for ( var i:int = 0 ; i < _time ; ++i )
                 _delayBuffer[ i ] = new Vector.<Number>( 2, true );
+
+            if ( _delayIndex > _time )
+                _delayIndex = 0;
         }
 
         public function get mix():Number

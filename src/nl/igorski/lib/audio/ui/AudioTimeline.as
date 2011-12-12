@@ -436,17 +436,22 @@ public class AudioTimeline extends Sprite implements IAudioTimeline
         /**
          * showNext: draws the graphics and adds listeners for the timeline that is about to slide into view
          * 
-         * @param	upper Boolean set to true for enabling visibility of next ( higher octave )
-         *                set to false for enabling visibility of lower octave
+         * @param upper {Boolean} set to true for enabling visibility of next ( higher octave )
+         *              set to false for enabling visibility of lower octave
+         * @param fromOctave {int} the octave we want to calculate from, defaults to the currently
+         *        visible octave
          */
-        protected function showNext( upper:Boolean ):void
+        protected function showNext( upper:Boolean, fromOctave:int = -1 ):void
         {
             var next:int;
+
+            if ( fromOctave == -1 )
+                fromOctave = _curOctave;
             
             if ( upper )
-                next = _curOctave + 1;
+                next = fromOctave + 1;
             else
-                next = _curOctave - 1;
+                next = fromOctave - 1;
 
             if ( next > _octaves || next < 0 )
                 return;

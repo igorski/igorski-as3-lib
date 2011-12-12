@@ -13,7 +13,7 @@ package nl.igorski.lib.utils.pagination
     {
         private var _currentPage     :int;
         private var _buttonClass     :Class;
-        private var _maxPages        :int;
+        private var _totalPages      :int;
         private var _items_per_page  :int;
 
         private var _buttons         :Vector.<IPaginatorButton>;
@@ -21,31 +21,43 @@ package nl.igorski.lib.utils.pagination
         //_________________________________________________________________________________________________________
         //                                                                                    C O N S T R U C T O R
 
-        public function Pagination( currentPage:int = 0, totalItems:int = 0, itemsPerPage:int = 5, buttonClass:Class = null )
+        /**
+         *
+         * @param currentPage   {int} number of the current page
+         * @param totalPages    {int} amount of pages
+         * @param itemsPerPage  {int} the max. amount of buttons in the paginator
+         * @param buttonClass   {Class} the Class to use for the buttons, must implement
+         *                      the IPaginatorButton interface
+         */
+        public function Pagination( currentPage:int = 0, totalPages:int = 0, itemsPerPage:int = 5, buttonClass:Class = null )
         {
             _currentPage    = currentPage;
             _buttonClass    = buttonClass;
-            _maxPages       = Math.ceil( totalItems / itemsPerPage );
+            _totalPages       = Math.ceil( totalPages / itemsPerPage );
             _items_per_page = itemsPerPage;
 
             _buttons        = new <IPaginatorButton>[];
 
-            if ( _maxPages > 1 )
+            if ( _totalPages > 1 )
                 createButtons();
         }
 
         //_________________________________________________________________________________________________________
         //                                                                              P U B L I C   M E T H O D S
 
-        public function update( currentPage:int = 0, totalItems:int = 0, itemsPerPage:int = 5 ):void
+        /**
+         * update the current paginator button list
+         * @param currentPage   {int} number of the current page
+         * @param totalPages    {int} amount of pages
+         */
+        public function update( currentPage:int = 0, totalPages:int = 0 ):void
         {
             destroyButtons();
 
              _currentPage   = currentPage;
-            _maxPages       = Math.ceil( totalItems / itemsPerPage );
-            _items_per_page = itemsPerPage;
+            _totalPages     = totalPages;
 
-            if ( _maxPages > 1 )
+            if ( _totalPages > 1 )
                 createButtons();
         }
         //_________________________________________________________________________________________________________
@@ -90,31 +102,31 @@ package nl.igorski.lib.utils.pagination
 
             var max:int = min + _items_per_page;
 
-            if ( max > _maxPages )
-                max = _maxPages;
+            if ( max > _totalPages )
+                max = _totalPages;
 
             if ( min > 0 )
             {
-                if ( max - 1 < _maxPages + 1 )
+                if ( max - 1 < _totalPages + 1 )
                     ++min;
 
-                if ( _maxPages > _items_per_page ) {
-                    createButton( 0, "1" );
+                if ( _totalPages > _items_per_page ) {
+                    createButton( 0, "1..." );
                 }
             }
             var doLast:Boolean = false;
 
-            if ( max < _maxPages ) {
+            if ( max < _totalPages ) {
                 --max;
                 doLast = true;
             }
             else {
 
-                if ( _currentPage == _maxPages - 1 )
-                    min -= ( _maxPages + theStep ) - max;
+                if ( _currentPage == _totalPages - 1 )
+                    min -= ( _totalPages + theStep ) - max;
 
-                else if ( _currentPage == ( _maxPages - theStep ))
-                    min -= ( _maxPages + 1 ) - max;
+                else if ( _currentPage == ( _totalPages - theStep ))
+                    min -= ( _totalPages + 1 ) - max;
 
                 if ( min < 0 )
                     min = 0;
@@ -129,7 +141,7 @@ package nl.igorski.lib.utils.pagination
             }
 
             if ( doLast )
-                createButton( _maxPages - 1, "..." + _maxPages );
+                createButton( _totalPages - 1, "..." + _totalPages );
         }
 
         private function destroyButtons():void

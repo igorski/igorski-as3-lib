@@ -78,7 +78,7 @@
 
             tabIndex = _tabIndex;
 
-            bg.alpha = 0;
+            bg.alpha       = 0;
             error_bg.alpha = 1;
         }
 
@@ -103,7 +103,7 @@
             draw();
             swapChildren( textField, getChildAt( numChildren - 1 ));
 
-            bg.alpha = 1;
+            bg.alpha       = 1;
             error_bg.alpha = 0;
         }
 
@@ -204,17 +204,18 @@
         override public function set tabEnabled( value:Boolean ):void
         {
             textField.tabEnabled = true;
+            super.tabEnabled     = false;
         }
 
         override public function set height( value:Number ):void
         {
-            bg.height = value;
+            bg.height       = value;
             error_bg.height = value;
         }
 
         override public function set width( value:Number ):void
         {
-            bg.width = value;
+            bg.width       = value;
             error_bg.width = value;
         }
 
@@ -237,6 +238,8 @@
 
         private function handleTextFieldFocus( e:FocusEvent ):void
         {
+            stage.focus = textField; // force this for tab-key usage bug which might occur
+
             if ( textField.text == _placeHolderText )
             {
                 textField.text = " ";
@@ -310,10 +313,10 @@
 
             if ( textField.multiline ) {
                 textField.height = bg.height - 2;
-                textField.y = Math.round( bg.y + 1 );
+                textField.y      = Math.round( bg.y + 1 );
             } else {
                 textField.height = 18;
-                textField.y = Math.round(( bg.height - 20 ) * .5 );
+                textField.y      = Math.round(( bg.height - 20 ) * .5 );
             }
             addChild( textField );
             addListeners();
@@ -324,13 +327,13 @@
 
         private function addListeners():void
         {
-            textField.addEventListener( FocusEvent.FOCUS_IN, handleTextFieldFocus );
+            textField.addEventListener( FocusEvent.FOCUS_IN,  handleTextFieldFocus );
             textField.addEventListener( FocusEvent.FOCUS_OUT, handleTextFieldBlur );
         }
 
         private function removeListeners():void
         {
-            textField.removeEventListener( FocusEvent.FOCUS_IN, handleTextFieldFocus );
+            textField.removeEventListener( FocusEvent.FOCUS_IN,  handleTextFieldFocus );
             textField.removeEventListener( FocusEvent.FOCUS_OUT, handleTextFieldBlur );
         }
 

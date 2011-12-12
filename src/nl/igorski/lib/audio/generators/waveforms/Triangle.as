@@ -48,11 +48,11 @@ package nl.igorski.lib.audio.generators.waveforms
 
                 if( _phase < .5 ) {
                     tmp = ( _phase * 4.0 - 1.0 );
-                    amplitude = ( 1.0 - tmp * tmp ) * env * env;
+                    amplitude = ( 1.0 - tmp * tmp ) * env * env * .75;
                 }
                 else {
                     tmp = ( _phase * 4.0 - 3.0 );
-                    amplitude = ( tmp * tmp - 1.0 ) * env * env;
+                    amplitude = ( tmp * tmp - 1.0 ) * env * env * .75;
                 }
 
                 _phase += _phaseIncr;

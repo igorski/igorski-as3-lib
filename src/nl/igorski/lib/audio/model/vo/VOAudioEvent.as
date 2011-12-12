@@ -176,7 +176,10 @@ package nl.igorski.lib.audio.model.vo
                 return true;
 
             for ( _progress; _progress < m; ++_progress )
-                wave.generate( cacheBuffer, _progress );
+            {
+                if ( cacheBuffer != null && wave != null )  // TODO: this shouldn't occur !
+                    wave.generate( cacheBuffer, _progress );
+            }
 
             return _progress < _maximum;
         }
@@ -191,10 +194,13 @@ package nl.igorski.lib.audio.model.vo
             cacheBuffer = null;
             _maximum    = 0;
 
-            sample.valid = true;
-            sample.sample.invalidateSampleMemory();
-            sample.sample.commitChannelData();
+            if ( sample ) {
+                // TODO: this check should be uncessary
+                sample.valid = true;
+                sample.sample.invalidateSampleMemory();
+                sample.sample.commitChannelData();
 
+            }
             removeEventListener( ThreadEvent.COMPLETE, threadComplete );
             dispatchEvent( new AudioCacheEvent( AudioCacheEvent.CACHE_COMPLETED ));
         }
